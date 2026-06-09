@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sweep" cx="0" cy="0" r="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#06b6d4" stop-opacity="0.65"/>
+      <stop offset="1" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#1a1f36"/>
+  <g transform="translate(256,256)">
+    <circle r="150" fill="none" stroke="#06b6d4" stroke-width="6" opacity="0.30"/>
+    <circle r="105" fill="none" stroke="#06b6d4" stroke-width="6" opacity="0.45"/>
+    <circle r="60" fill="none" stroke="#06b6d4" stroke-width="6" opacity="0.65"/>
+    <line x1="-150" y1="0" x2="150" y2="0" stroke="#06b6d4" stroke-width="3" opacity="0.25"/>
+    <line x1="0" y1="-150" x2="0" y2="150" stroke="#06b6d4" stroke-width="3" opacity="0.25"/>
+    <path d="M0 0 L150 0 A150 150 0 0 0 75 -129.9 Z" fill="url(#sweep)"/>
+    <circle cx="92" cy="-40" r="13" fill="#ffffff"/>
+    <circle r="17" fill="#06b6d4"/>
+  </g>
+</svg>

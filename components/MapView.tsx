@@ -5,7 +5,7 @@ import { Map, useMap } from '@vis.gl/react-google-maps';
 import { Box, Fab, Snackbar, CircularProgress, LinearProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchBar from './SearchBar';
-import ProspectMarker from './ProspectMarker';
+import ClusteredMarkers from './ClusteredMarkers';
 import FilterChips, { type Filters } from './FilterChips';
 import { useData } from './DataProvider';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
@@ -17,6 +17,8 @@ export default function MapView() {
     useData();
   const [filters, setFilters] = useState<Filters>({ nb: 'all', type: 'all', stage: 'all' });
   const [query, setQuery] = useState('');
+  const [pullMsg, setPullMsg] = useState<string | null>(null);
+  const [errMsg, setErrMsg] = useState<string | null>(null);
   const map = useMap();
 
   const filtered = useMemo(() => {
@@ -37,6 +39,16 @@ export default function MapView() {
     if (v) map.panTo({ lat: v.lat, lng: v.lng });
   }, [map, selectedId, views]);
 
+  // Surface transient toasts in local state so they auto-dismiss on a timer.
+  useEffect(() => {
+    if (lastPull && !refreshing) {
+      setPullMsg(`Pulled ${lastPull.total} prospects (${lastPull.added} new).`);
+    }
+  }, [lastPull, refreshing]);
+  useEffect(() => {
+    if (error) setErrMsg(error);
+  }, [error]);
+
   return (
     <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       <Map
@@ -48,9 +60,7 @@ export default function MapView() {
         clickableIcons={false}
         style={{ width: '100%', height: '100%' }}
       >
-        {filtered.map((v) => (
-          <ProspectMarker key={v.place_id} view={v} onClick={() => setSelectedId(v.place_id)} />
-        ))}
+        <ClusteredMarkers views={filtered} onSelect={setSelectedId} />
       </Map>
 
       <SearchBar value={query} onChange={setQuery} />
@@ -83,18 +93,20 @@ export default function MapView() {
       </Fab>
 
       <Snackbar
-        open={!!lastPull && !refreshing}
-        autoHideDuration={5000}
-        message={lastPull ? `Pulled ${lastPull.total} prospects (${lastPull.added} new).` : ''}
+        open={!!pullMsg}
+        autoHideDuration={4000}
+        onClose={() => setPullMsg(null)}
+        message={pullMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ mb: 'calc(var(--safe-bottom) + 80px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 96px)' }}
       />
       <Snackbar
-        open={!!error}
+        open={!!errMsg}
         autoHideDuration={6000}
-        message={error ?? ''}
+        onClose={() => setErrMsg(null)}
+        message={errMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ mb: 'calc(var(--safe-bottom) + 80px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 96px)' }}
       />
     </Box>
   );

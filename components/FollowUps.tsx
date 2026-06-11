@@ -18,7 +18,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useData } from './DataProvider';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
-import { glassSx } from '@/lib/glass';
+import { glassSx, glassCardSx } from '@/lib/glass';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 const OVERDUE = '#d93025';
@@ -36,7 +36,13 @@ function formatDate(ymd: string) {
   });
 }
 
-export default function FollowUps({ onOpen }: { onOpen: () => void }) {
+export default function FollowUps({
+  onOpen,
+  onScroll,
+}: {
+  onOpen: () => void;
+  onScroll?: () => void;
+}) {
   const { views, setSelectedId, save } = useData();
   const today = todayStr();
   // Holds the just-cleared follow-up so it can be restored via the Undo snackbar.
@@ -71,6 +77,7 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
 
   return (
     <Box
+      onScroll={onScroll}
       sx={{
         position: 'absolute',
         inset: 0,
@@ -109,8 +116,7 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
             return (
               <Card
                 key={v.place_id}
-                variant="outlined"
-                sx={{ borderRadius: 3, display: 'flex', alignItems: 'center' }}
+                sx={{ ...glassCardSx, display: 'flex', alignItems: 'center' }}
               >
                 <CardActionArea
                   onClick={() => {

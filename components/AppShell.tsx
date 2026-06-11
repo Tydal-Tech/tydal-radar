@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import DataProvider, { useData } from './DataProvider';
@@ -18,6 +18,19 @@ function ShellInner() {
   const { views } = useData();
   const followUpCount = views.filter((v) => v.follow_up_date).length;
 
+  // Shrink-on-scroll: the nav condenses while a list is scrolling, expands ~220ms
+  // after it stops. setState(true) is a no-op once already true, so scroll stays cheap.
+  const [navCondensed, setNavCondensed] = useState(false);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onListScroll = useCallback(() => {
+    setNavCondensed(true);
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => setNavCondensed(false), 220);
+  }, []);
+  useEffect(() => {
+    setNavCondensed(false);
+  }, [tab]);
+
   return (
     <Box
       sx={{
@@ -34,11 +47,20 @@ function ShellInner() {
         <Box sx={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
           <MapView />
         </Box>
-        {tab === 'search' && <SearchOverlay onClose={() => setTab('map')} />}
-        {tab === 'followups' && <FollowUps onOpen={() => setTab('map')} />}
-        {tab === 'contracts' && <Contracts onOpen={() => setTab('map')} />}
+        {tab === 'search' && <SearchOverlay onClose={() => setTab('map')} onScroll={onListScroll} />}
+        {tab === 'followups' && (
+          <FollowUps onOpen={() => setTab('map')} onScroll={onListScroll} />
+        )}
+        {tab === 'contracts' && (
+          <Contracts onOpen={() => setTab('map')} onScroll={onListScroll} />
+        )}
       </Box>
-      <BottomNav value={tab} onChange={setTab} followUpCount={followUpCount} />
+      <BottomNav
+        value={tab}
+        onChange={setTab}
+        followUpCount={followUpCount}
+        condensed={navCondensed}
+      />
       <ProspectSheet />
     </Box>
   );

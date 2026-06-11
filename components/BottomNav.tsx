@@ -14,14 +14,17 @@ export default function BottomNav({
   value,
   onChange,
   followUpCount,
+  condensed = false,
 }: {
   value: Tab;
   onChange: (tab: Tab) => void;
   followUpCount?: number;
+  condensed?: boolean;
 }) {
   return (
     // Floating frosted pill detached from every edge, sitting over a full-bleed
     // map. Search lives here as an icon (social-media pattern), not a standing bar.
+    // Condenses (labels collapse, bar shrinks) while a list scrolls.
     <Paper
       elevation={0}
       sx={{
@@ -41,13 +44,19 @@ export default function BottomNav({
         showLabels
         sx={{
           bgcolor: 'transparent',
-          height: 60,
+          height: condensed ? 46 : 60,
+          transition: 'height 280ms cubic-bezier(0.22, 1, 0.36, 1)',
           '& .MuiBottomNavigationAction-root': {
             minWidth: 0,
             transition: `color 250ms ease, transform ${PRESS_MS}ms ${PRESS_EASE}`,
             '&:active': { transform: 'scale(0.94)' },
           },
-          '& .MuiBottomNavigationAction-label': { transition: 'font-size 200ms ease, opacity 200ms ease' },
+          '& .MuiBottomNavigationAction-label': {
+            transition: 'opacity 200ms ease, max-height 240ms ease',
+            opacity: condensed ? 0 : 1,
+            maxHeight: condensed ? 0 : 20,
+            overflow: 'hidden',
+          },
         }}
       >
         <BottomNavigationAction label="Map" value="map" icon={<MapOutlinedIcon />} />

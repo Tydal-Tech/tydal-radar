@@ -18,14 +18,20 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useData } from './DataProvider';
 import { ICP } from '@/lib/icp';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
-import { glassSx } from '@/lib/glass';
+import { glassSx, glassCardSx } from '@/lib/glass';
 import type { IcpType } from '@/lib/types';
 
 // Full-screen search (the social-media pattern): a frosted field + a results
 // list, reached from the Search nav tab instead of a standing bar. Same
 // name/address match the old bar used; tapping a result selects the prospect
 // and returns to the map (where the sheet opens and the map recenters).
-export default function SearchOverlay({ onClose }: { onClose: () => void }) {
+export default function SearchOverlay({
+  onClose,
+  onScroll,
+}: {
+  onClose: () => void;
+  onScroll?: () => void;
+}) {
   const { views, setSelectedId } = useData();
   const [query, setQuery] = useState('');
 
@@ -44,6 +50,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
 
   return (
     <Box
+      onScroll={onScroll}
       sx={{
         position: 'absolute',
         inset: 0,
@@ -101,7 +108,7 @@ export default function SearchOverlay({ onClose }: { onClose: () => void }) {
       ) : (
         <Stack spacing={1.25} sx={{ mt: 1.5 }}>
           {results.map((v) => (
-            <Card key={v.place_id} variant="outlined" sx={{ borderRadius: 3 }}>
+            <Card key={v.place_id} sx={glassCardSx}>
               <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
                 <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
                   <Box sx={{ minWidth: 0 }}>

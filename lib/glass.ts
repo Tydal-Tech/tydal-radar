@@ -43,3 +43,15 @@ export const glassChipSx = {
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0,0,0,0.30)',
   ...REDUCED_TRANSPARENCY,
 } as const;
+
+// List-row cards (Follow-ups / Contracts / Search): a faint translucent fill +
+// sheen + hairline over the solid dark list background, with a press-scale.
+export const glassCardSx = {
+  borderRadius: 3,
+  bgcolor: 'rgba(255,255,255,0.045)',
+  backgroundImage: SPECULAR,
+  border: '1px solid rgba(255,255,255,0.1)',
+  transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.5, 1)',
+  '&:active': { transform: 'scale(0.985)' },
+  ...REDUCED_TRANSPARENCY,
+} as const;

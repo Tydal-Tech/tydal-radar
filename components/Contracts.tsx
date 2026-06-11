@@ -6,11 +6,18 @@ import { useData } from './DataProvider';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP, ICP_EMOJI } from '@/lib/icp';
 import { parseExpiry, expiryStatus, formatExpiry, EXPIRY_COLOR } from '@/lib/contracts';
+import { glassCardSx } from '@/lib/glass';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 type Row = { v: ProspectView; ym: string | null };
 
-export default function Contracts({ onOpen }: { onOpen: () => void }) {
+export default function Contracts({
+  onOpen,
+  onScroll,
+}: {
+  onOpen: () => void;
+  onScroll?: () => void;
+}) {
   const { views, setSelectedId } = useData();
 
   // Every prospect with a non-empty contract_expiry, parsed to YYYY-MM where we
@@ -28,6 +35,7 @@ export default function Contracts({ onOpen }: { onOpen: () => void }) {
 
   return (
     <Box
+      onScroll={onScroll}
       sx={{
         position: 'absolute',
         inset: 0,
@@ -66,7 +74,7 @@ export default function Contracts({ onOpen }: { onOpen: () => void }) {
             const status = ym ? expiryStatus(ym) : null;
             const color = status ? EXPIRY_COLOR[status.bucket] : '';
             return (
-              <Card key={v.place_id} variant="outlined" sx={{ borderRadius: 3 }}>
+              <Card key={v.place_id} sx={glassCardSx}>
                 <CardActionArea
                   onClick={() => {
                     setSelectedId(v.place_id);

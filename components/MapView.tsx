@@ -143,6 +143,39 @@ export default function MapView() {
         />
       )}
 
+      {/* Orientation pill: how many prospects are on the map right now, and a
+          "{shown} of {total}" + tune glyph when filters are trimming the set. */}
+      {!loading && (
+        <Box
+          className="tydal-glass"
+          sx={{
+            position: 'absolute',
+            top: 'calc(var(--safe-top) + 12px)',
+            left: 12,
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            px: 1.25,
+            py: 0.5,
+            borderRadius: 99,
+            bgcolor: 'background.paper',
+            color: anyFilter ? 'secondary.main' : 'text.secondary',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            lineHeight: 1.4,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            ...glassSx,
+          }}
+        >
+          {anyFilter && <TuneIcon sx={{ fontSize: 16 }} />}
+          {anyFilter
+            ? `${filtered.length} of ${views.length}`
+            : `${filtered.length} prospect${filtered.length === 1 ? '' : 's'}`}
+        </Box>
+      )}
+
       {/* Right-edge stack of equal-size circular glass controls (Apple pattern):
           Refresh on top, Filter in the middle, My-location below. */}
       <Fab

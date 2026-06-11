@@ -15,7 +15,9 @@ import {
 } from '@mui/material';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useData } from './DataProvider';
+import { SPRING_120 } from '@/lib/motion';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
 import { glassSx, glassCardSx } from '@/lib/glass';
@@ -44,6 +46,9 @@ export default function FollowUps({
   onScroll?: () => void;
 }) {
   const { views, setSelectedId, save } = useData();
+  // The CSS prefers-reduced-motion blanket doesn't reach framer's JS springs,
+  // so honor it here: render rows at rest (no offset, no stagger, no layout glide).
+  const reduceMotion = useReducedMotion();
   const today = todayStr();
   // Holds the just-cleared follow-up so it can be restored via the Undo snackbar.
   const [undo, setUndo] = useState<{ id: string; name: string; date: string | null } | null>(null);
@@ -110,60 +115,85 @@ export default function FollowUps({
         </Box>
       ) : (
         <Stack spacing={1.25}>
-          {items.map((v) => {
-            const overdue = v.follow_up_date! < today;
-            const dueToday = v.follow_up_date === today;
-            return (
-              <Card
-                key={v.place_id}
-                sx={{ ...glassCardSx, display: 'flex', alignItems: 'center' }}
-              >
-                <CardActionArea
-                  onClick={() => {
-                    setSelectedId(v.place_id);
-                    onOpen();
+          {/* Entrance: cards spring up with a per-index stagger (capped at 8 so
+              long lists never feel laggy). Exit: clearing a follow-up fades the
+              card out while `layout` glides the remaining siblings up — both
+              transform/opacity only, so no layout thrash. */}
+          <AnimatePresence>
+            {items.map((v, i) => {
+              const overdue = v.follow_up_date! < today;
+              const dueToday = v.follow_up_date === today;
+              return (
+                <motion.div
+                  key={v.place_id}
+                  layout={!reduceMotion}
+                  initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{
+                    opacity: 0,
+                    transition: reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.16, ease: 'easeOut' },
                   }}
-                  sx={{ p: 1.75, flex: 1 }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { ...SPRING_120, delay: Math.min(i, 8) * 0.045 }
+                  }
                 >
-                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600 }} noWrap>
-                        {v.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {ICP[v.type as IcpType].label} · {v.neighborhood}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ mt: 0.5, fontWeight: 600, color: overdue ? OVERDUE : 'text.primary' }}
-                      >
-                        {overdue ? 'Overdue · ' : dueToday ? 'Today · ' : ''}
-                        {formatDate(v.follow_up_date!)}
-                      </Typography>
-                    </Box>
-                    <Chip
-                      size="small"
-                      label={STAGE_LABELS[v.stage]}
-                      sx={{
-                        alignSelf: 'flex-start',
-                        bgcolor: STAGE_COLORS[v.stage],
-                        color: STAGE_ON_COLOR[v.stage],
-                        fontWeight: 600,
-                        flexShrink: 0,
+                  <Card sx={{ ...glassCardSx, display: 'flex', alignItems: 'center' }}>
+                    <CardActionArea
+                      onClick={() => {
+                        setSelectedId(v.place_id);
+                        onOpen();
                       }}
-                    />
-                  </Stack>
-                </CardActionArea>
-                <IconButton
-                  aria-label={`Clear follow-up for ${v.name}`}
-                  onClick={() => clearFollowUp(v)}
-                  sx={{ mx: 0.5, flexShrink: 0, color: 'text.secondary' }}
-                >
-                  <CloseIcon />
-                </IconButton>
-              </Card>
-            );
-          })}
+                      sx={{ p: 1.75, flex: 1 }}
+                    >
+                      <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ fontWeight: 600 }} noWrap>
+                            {v.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" noWrap>
+                            {ICP[v.type as IcpType].label} · {v.neighborhood}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              mt: 0.5,
+                              fontWeight: 600,
+                              color: overdue ? OVERDUE : 'text.primary',
+                            }}
+                          >
+                            {overdue ? 'Overdue · ' : dueToday ? 'Today · ' : ''}
+                            {formatDate(v.follow_up_date!)}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          size="small"
+                          label={STAGE_LABELS[v.stage]}
+                          sx={{
+                            alignSelf: 'flex-start',
+                            bgcolor: STAGE_COLORS[v.stage],
+                            color: STAGE_ON_COLOR[v.stage],
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}
+                        />
+                      </Stack>
+                    </CardActionArea>
+                    <IconButton
+                      aria-label={`Clear follow-up for ${v.name}`}
+                      onClick={() => clearFollowUp(v)}
+                      sx={{ mx: 0.5, flexShrink: 0, color: 'text.secondary' }}
+                    >
+                      <CloseIcon />
+                    </IconButton>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </Stack>
       )}
 

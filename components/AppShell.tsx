@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import DataProvider, { useData } from './DataProvider';
+import { SPRING_120 } from '@/lib/motion';
 import BottomNav, { type Tab } from './BottomNav';
 import MapView from './MapView';
 import FollowUps from './FollowUps';
@@ -18,6 +19,24 @@ function ShellInner() {
   const [tab, setTab] = useState<Tab>('map');
   const { views } = useData();
   const followUpCount = views.filter((v) => v.follow_up_date).length;
+  // framer's JS springs aren't covered by the CSS reduced-motion blanket, so
+  // gate the tab transition here (instant swap when reduced motion is set).
+  const reduceMotion = useReducedMotion();
+
+  // Shared fade+slide for the two list views (transform/opacity only, map-safe).
+  // Enter rides the 120Hz spring; exit is a quick ease so `mode="wait"` hands
+  // off to the next tab without feeling sluggish.
+  const listViewMotion = {
+    initial: reduceMotion ? false : { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: {
+      opacity: 0,
+      y: reduceMotion ? 0 : 8,
+      transition: reduceMotion ? { duration: 0 } : { duration: 0.12, ease: 'easeIn' as const },
+    },
+    transition: reduceMotion ? { duration: 0 } : SPRING_120,
+    style: { position: 'absolute' as const, inset: 0 },
+  };
 
   // Shrink-on-scroll: the nav condenses while a list is scrolling, expands ~220ms
   // after it stops. setState(true) is a no-op once already true, so scroll stays cheap.
@@ -86,12 +105,22 @@ function ShellInner() {
             <SearchOverlay key="search" onClose={() => setTab('map')} onScroll={onListScroll} />
           )}
         </AnimatePresence>
-        {tab === 'followups' && (
-          <FollowUps onOpen={() => setTab('map')} onScroll={onListScroll} />
-        )}
-        {tab === 'contracts' && (
-          <Contracts onOpen={() => setTab('map')} onScroll={onListScroll} />
-        )}
+        {/* List views fade + slide on tab change. A separate AnimatePresence from
+            the search sheet/scrim above, so their choreography is untouched.
+            mode="wait" sequences the outgoing/incoming views (both are opaque,
+            absolutely-positioned panels); initial={false} keeps app launch quiet. */}
+        <AnimatePresence mode="wait" initial={false}>
+          {tab === 'followups' && (
+            <motion.div key="followups" {...listViewMotion}>
+              <FollowUps onOpen={() => setTab('map')} onScroll={onListScroll} />
+            </motion.div>
+          )}
+          {tab === 'contracts' && (
+            <motion.div key="contracts" {...listViewMotion}>
+              <Contracts onOpen={() => setTab('map')} onScroll={onListScroll} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Box>
       <BottomNav
         value={tab}

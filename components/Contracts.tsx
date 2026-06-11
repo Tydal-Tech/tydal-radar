@@ -2,7 +2,9 @@
 
 import { Box, Typography, Card, CardActionArea, Chip, Stack } from '@mui/material';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useData } from './DataProvider';
+import { SPRING_120 } from '@/lib/motion';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP, ICP_EMOJI } from '@/lib/icp';
 import { parseExpiry, expiryStatus, formatExpiry, EXPIRY_COLOR } from '@/lib/contracts';
@@ -19,6 +21,9 @@ export default function Contracts({
   onScroll?: () => void;
 }) {
   const { views, setSelectedId } = useData();
+  // The CSS prefers-reduced-motion blanket doesn't reach framer's JS springs,
+  // so honor it here: render rows at rest (no offset, no stagger).
+  const reduceMotion = useReducedMotion();
 
   // Every prospect with a non-empty contract_expiry, parsed to YYYY-MM where we
   // can. Parseable rows sort by expiry ascending (soonest first); unparseable
@@ -70,69 +75,86 @@ export default function Contracts({
         </Box>
       ) : (
         <Stack spacing={1.25}>
-          {rows.map(({ v, ym }) => {
+          {/* Entrance: cards spring up with a per-index stagger, capped at 8 so
+              long lists never feel laggy. Transform/opacity only. */}
+          {rows.map(({ v, ym }, i) => {
             const status = ym ? expiryStatus(ym) : null;
             const color = status ? EXPIRY_COLOR[status.bucket] : '';
             return (
-              <Card key={v.place_id} sx={glassCardSx}>
-                <CardActionArea
-                  onClick={() => {
-                    setSelectedId(v.place_id);
-                    onOpen();
-                  }}
-                  sx={{ p: 1.75 }}
-                >
-                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600 }} noWrap>
-                        <span aria-hidden style={{ marginRight: 6 }}>
-                          {ICP_EMOJI[v.type as IcpType]}
-                        </span>
-                        {v.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {v.neighborhood} · {v.current_provider?.trim() || 'Provider unknown'}
-                      </Typography>
-                      {ym ? (
-                        <Typography
-                          variant="body2"
-                          sx={{ mt: 0.5, fontWeight: 600, color: color || 'text.primary' }}
-                        >
-                          {status && status.daysUntil < 0 ? 'Expired · ' : 'Expires '}
-                          {formatExpiry(ym)}
+              <motion.div
+                key={v.place_id}
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { ...SPRING_120, delay: Math.min(i, 8) * 0.045 }
+                }
+              >
+                <Card sx={glassCardSx}>
+                  <CardActionArea
+                    onClick={() => {
+                      setSelectedId(v.place_id);
+                      onOpen();
+                    }}
+                    sx={{ p: 1.75 }}
+                  >
+                    <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 600 }} noWrap>
+                          <span aria-hidden style={{ marginRight: 6 }}>
+                            {ICP_EMOJI[v.type as IcpType]}
+                          </span>
+                          {v.name}
                         </Typography>
-                      ) : (
-                        <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: 'center' }}>
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {v.contract_expiry}
+                        <Typography variant="body2" color="text.secondary" noWrap>
+                          {v.neighborhood} · {v.current_provider?.trim() || 'Provider unknown'}
+                        </Typography>
+                        {ym ? (
+                          <Typography
+                            variant="body2"
+                            sx={{ mt: 0.5, fontWeight: 600, color: color || 'text.primary' }}
+                          >
+                            {status && status.daysUntil < 0 ? 'Expired · ' : 'Expires '}
+                            {formatExpiry(ym)}
                           </Typography>
-                          <Chip
-                            size="small"
-                            label="Fix date"
-                            sx={{
-                              bgcolor: EXPIRY_COLOR.amber,
-                              color: '#1a1f36',
-                              fontWeight: 700,
-                              flexShrink: 0,
-                            }}
-                          />
-                        </Stack>
-                      )}
-                    </Box>
-                    <Chip
-                      size="small"
-                      label={STAGE_LABELS[v.stage]}
-                      sx={{
-                        alignSelf: 'flex-start',
-                        bgcolor: STAGE_COLORS[v.stage],
-                        color: STAGE_ON_COLOR[v.stage],
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
-                    />
-                  </Stack>
-                </CardActionArea>
-              </Card>
+                        ) : (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ mt: 0.5, alignItems: 'center' }}
+                          >
+                            <Typography variant="body2" color="text.secondary" noWrap>
+                              {v.contract_expiry}
+                            </Typography>
+                            <Chip
+                              size="small"
+                              label="Fix date"
+                              sx={{
+                                bgcolor: EXPIRY_COLOR.amber,
+                                color: '#1a1f36',
+                                fontWeight: 700,
+                                flexShrink: 0,
+                              }}
+                            />
+                          </Stack>
+                        )}
+                      </Box>
+                      <Chip
+                        size="small"
+                        label={STAGE_LABELS[v.stage]}
+                        sx={{
+                          alignSelf: 'flex-start',
+                          bgcolor: STAGE_COLORS[v.stage],
+                          color: STAGE_ON_COLOR[v.stage],
+                          fontWeight: 600,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Stack>
+                  </CardActionArea>
+                </Card>
+              </motion.div>
             );
           })}
         </Stack>

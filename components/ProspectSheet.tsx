@@ -23,6 +23,16 @@ import { openDirections } from '@/lib/directions';
 import { SPRING_120, SPRING_SHEET } from '@/lib/motion';
 import type { IcpType } from '@/lib/types';
 
+// External label for date/month fields: those inputs are always non-empty, so a
+// floating MUI label sits on the border and reads as overlapping — put it above.
+const fieldLabelSx = {
+  display: 'block',
+  mb: 0.75,
+  fontSize: '0.9rem',
+  fontWeight: 500,
+  color: 'text.secondary',
+} as const;
+
 export default function ProspectSheet() {
   const { views, selectedId, setSelectedId, save } = useData();
   const view = views.find((v) => v.place_id === selectedId) ?? null;
@@ -330,15 +340,18 @@ export default function ProspectSheet() {
                   sx={{ mt: 2.5 }}
                 />
 
-                <TextField
-                  label="Contract expiry"
-                  type="month"
-                  value={contractExpiry}
-                  onChange={(e) => setContractExpiry(e.target.value)}
-                  fullWidth
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  sx={{ mt: 2.5 }}
-                />
+                <Box sx={{ mt: 2.5 }}>
+                  <Typography component="label" htmlFor="contract-expiry" sx={fieldLabelSx}>
+                    Contract expiry
+                  </Typography>
+                  <TextField
+                    id="contract-expiry"
+                    type="month"
+                    value={contractExpiry}
+                    onChange={(e) => setContractExpiry(e.target.value)}
+                    fullWidth
+                  />
+                </Box>
 
                 <TextField
                   label="Note"
@@ -350,21 +363,25 @@ export default function ProspectSheet() {
                   sx={{ mt: 2.5 }}
                 />
 
-                <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: 'center' }}>
-                  <TextField
-                    label="Follow-up date"
-                    type="date"
-                    value={followUp}
-                    onChange={(e) => setFollowUp(e.target.value)}
-                    fullWidth
-                    slotProps={{ inputLabel: { shrink: true } }}
-                  />
-                  {followUp && (
-                    <IconButton aria-label="Clear follow-up date" onClick={() => setFollowUp('')}>
-                      <ClearIcon />
-                    </IconButton>
-                  )}
-                </Stack>
+                <Box sx={{ mt: 2 }}>
+                  <Typography component="label" htmlFor="follow-up" sx={fieldLabelSx}>
+                    Follow-up date
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <TextField
+                      id="follow-up"
+                      type="date"
+                      value={followUp}
+                      onChange={(e) => setFollowUp(e.target.value)}
+                      fullWidth
+                    />
+                    {followUp && (
+                      <IconButton aria-label="Clear follow-up date" onClick={() => setFollowUp('')}>
+                        <ClearIcon />
+                      </IconButton>
+                    )}
+                  </Stack>
+                </Box>
 
                 <Button
                   variant="text"

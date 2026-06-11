@@ -6,6 +6,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import { glassSx } from '@/lib/glass';
+import { PRESS_EASE, PRESS_MS } from '@/lib/motion';
 
 export type Tab = 'map' | 'search' | 'followups' | 'contracts';
 
@@ -43,9 +44,8 @@ export default function BottomNav({
           height: 60,
           '& .MuiBottomNavigationAction-root': {
             minWidth: 0,
-            transition:
-              'color 250ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)',
-            '&:active': { transform: 'scale(0.92)' },
+            transition: `color 250ms ease, transform ${PRESS_MS}ms ${PRESS_EASE}`,
+            '&:active': { transform: 'scale(0.94)' },
           },
           '& .MuiBottomNavigationAction-label': { transition: 'font-size 200ms ease, opacity 200ms ease' },
         }}

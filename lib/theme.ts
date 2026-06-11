@@ -1,5 +1,6 @@
 import { createTheme } from '@mui/material/styles';
 import { GLASS_BLUR } from './glass';
+import { PRESS_EASE, PRESS_MS } from './motion';
 
 // Tydal Radar brand: navy surfaces, blue primary actions, cyan accents.
 // iOS 18-style dark glass aesthetic — luminous translucent surfaces (driven by
@@ -56,7 +57,7 @@ const theme = createTheme({
     MuiFab: {
       styleOverrides: {
         root: {
-          transition: 'transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transition: `transform ${PRESS_MS}ms ${PRESS_EASE}`,
           '&:active': { transform: 'scale(0.96)' },
         },
       },

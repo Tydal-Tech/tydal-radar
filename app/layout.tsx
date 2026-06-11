@@ -47,7 +47,7 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){function s(){document.documentElement.style.setProperty('--app-height',window.innerHeight+'px');}s();addEventListener('resize',s);addEventListener('orientationchange',s);})();",
+              "(function(){function s(){var a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;document.documentElement.style.setProperty('--app-height',window.innerHeight+'px');}s();addEventListener('resize',s);addEventListener('orientationchange',s);})();",
           }}
         />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>

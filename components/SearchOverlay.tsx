@@ -12,7 +12,7 @@ import {
   Chip,
   Stack,
 } from '@mui/material';
-import { motion } from 'framer-motion';
+import { motion, useDragControls } from 'framer-motion';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import { useData } from './DataProvider';
@@ -21,11 +21,12 @@ import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { glassCardSx } from '@/lib/glass';
 import type { IcpType } from '@/lib/types';
 
-// Search as a bottom sheet OVER the map (Apple Maps pattern): a search field at
-// the top + a scrolling results list, sliding up from the bottom (above the nav
-// bar) while the map stays visible behind it and the map controls lift up. Same
-// name/address match as before; tapping a result selects the prospect and
-// returns to the map (where the prospect sheet opens and the map recenters).
+// Search as a bottom sheet OVER the map (Apple Maps pattern): a search field + a
+// scrolling results list, sliding up from the bottom (above the nav bar) while
+// the map stays visible (dimmed) behind it. Draggable down to close; tapping
+// anywhere outside the field (the dimmed map, or the results) dismisses the
+// keyboard. Same name/address match as before; tapping a result selects the
+// prospect and returns to the map (where its sheet opens and the map recenters).
 export default function SearchOverlay({
   onClose,
   onScroll,
@@ -35,6 +36,10 @@ export default function SearchOverlay({
 }) {
   const { views, setSelectedId } = useData();
   const [query, setQuery] = useState('');
+  const dragControls = useDragControls();
+
+  // Drop the keyboard (used on outside taps / scroll / drag).
+  const blurKeyboard = () => (document.activeElement as HTMLElement | null)?.blur?.();
 
   const q = query.trim().toLowerCase();
   const results = q
@@ -51,6 +56,14 @@ export default function SearchOverlay({
 
   return (
     <motion.div
+      drag="y"
+      dragControls={dragControls}
+      dragListener={false}
+      dragSnapToOrigin
+      dragConstraints={{ top: 0 }}
+      onDragEnd={(_, info) => {
+        if (info.offset.y > 90 || info.velocity.y > 600) onClose();
+      }}
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
@@ -71,19 +84,23 @@ export default function SearchOverlay({
         zIndex: 1100,
       }}
     >
-      {/* Grabber */}
+      {/* Grabber = drag handle (drag the sheet down to close). */}
       <Box
-        sx={{
-          alignSelf: 'center',
-          width: 36,
-          height: 5,
-          borderRadius: 3,
-          bgcolor: 'rgba(255,255,255,0.22)',
-          mt: 1,
-          mb: 1,
-          flexShrink: 0,
+        onPointerDown={(e) => {
+          blurKeyboard();
+          dragControls.start(e);
         }}
-      />
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          py: 1.25,
+          flexShrink: 0,
+          cursor: 'grab',
+          touchAction: 'none',
+        }}
+      >
+        <Box sx={{ width: 40, height: 5, borderRadius: 3, bgcolor: 'rgba(255,255,255,0.25)' }} />
+      </Box>
 
       {/* Search field + Cancel */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, pb: 1, flexShrink: 0 }}>
@@ -119,8 +136,15 @@ export default function SearchOverlay({
         </Button>
       </Box>
 
-      {/* Results */}
-      <Box onScroll={onScroll} sx={{ flex: 1, overflowY: 'auto', px: 1.5, pb: 2 }}>
+      {/* Results — tapping/scrolling here dismisses the keyboard. */}
+      <Box
+        onPointerDown={blurKeyboard}
+        onScroll={() => {
+          onScroll?.();
+          blurKeyboard();
+        }}
+        sx={{ flex: 1, overflowY: 'auto', px: 1.5, pb: 2, touchAction: 'pan-y' }}
+      >
         {!q ? (
           <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 4, px: 3 }}>
             <SearchIcon sx={{ fontSize: 44, opacity: 0.5 }} />

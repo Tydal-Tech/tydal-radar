@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import DataProvider, { useData } from './DataProvider';
 import BottomNav, { type Tab } from './BottomNav';
@@ -35,7 +35,9 @@ function ShellInner() {
   return (
     <Box
       sx={{
-        position: 'relative',
+        position: 'fixed',
+        top: 0,
+        left: 0,
         height: 'var(--app-height, 100dvh)',
         width: '100vw',
         overflow: 'hidden',
@@ -62,6 +64,25 @@ function ShellInner() {
         </Box>
         <AnimatePresence>
           {tab === 'search' && (
+            <motion.div
+              key="search-scrim"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.22 }}
+              onClick={() => setTab('map')}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 'var(--nav-total)',
+                background: 'rgba(0,0,0,0.32)',
+                zIndex: 1090,
+              }}
+            />
+          )}
+          {tab === 'search' && (
             <SearchOverlay key="search" onClose={() => setTab('map')} onScroll={onListScroll} />
           )}
         </AnimatePresence>
@@ -74,7 +95,7 @@ function ShellInner() {
       </Box>
       <BottomNav
         value={tab}
-        onChange={setTab}
+        onChange={(t) => setTab((cur) => (t === 'search' && cur === 'search' ? 'map' : t))}
         followUpCount={followUpCount}
         condensed={navCondensed}
       />

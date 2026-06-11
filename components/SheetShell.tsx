@@ -23,18 +23,35 @@ function snapTarget(h: number, vy: number, detents: number[]): number {
   return detents.reduce((a, b) => (Math.abs(b - h) < Math.abs(a - h) ? b : a));
 }
 
+// The three detent fractions of the VISUAL viewport height (the area that
+// actually shrinks when the iOS keyboard opens), with peek floored at 240px.
+function measureDetents(): number[] {
+  const vh = window.visualViewport?.height ?? window.innerHeight;
+  const peek = clamp(vh * 0.4, 240, vh);
+  const half = clamp(vh * 0.62, peek, vh);
+  const full = clamp(vh * 0.9, half, vh);
+  return [peek, half, full];
+}
+
+const DETENT_INDEX = { peek: 0, half: 1, full: 2 } as const;
+
 // Three-detent pull-up sheet (Peek / Half / Full) — the same behavior as the
 // prospect card: drag the grabber, or the content with a native-scroll handoff
 // at Full, to resize; momentum snaps to a detent; a hard flick down at Peek
 // dismisses. The sheet is anchored above the nav bar and grows upward; content
 // scrolls only once Full (locked at Peek/Half so a drag resizes instead).
+// `header` renders fixed (non-scrolling) between the grabber and the content.
 export default function SheetShell({
   onClose,
   onScroll,
+  header,
+  initialDetent = 'half',
   children,
 }: {
   onClose: () => void;
   onScroll?: () => void;
+  header?: ReactNode;
+  initialDetent?: 'peek' | 'half' | 'full';
   children: ReactNode;
 }) {
   const height = useMotionValue(0);
@@ -52,16 +69,40 @@ export default function SheetShell({
     vy: number;
   } | null>(null);
 
-  // Measure the three detents from the viewport and open at Peek.
+  // Measure the three detents from the visual viewport and open at initialDetent.
   useIsoLayout(() => {
-    const vh = window.innerHeight;
-    const peek = clamp(vh * 0.4, 240, vh);
-    const half = clamp(vh * 0.62, peek, vh);
-    const full = clamp(vh * 0.9, half, vh);
-    detentsRef.current = [peek, half, full];
-    height.set(peek);
-    setAtFull(false);
+    const d = measureDetents();
+    detentsRef.current = d;
+    const idx = DETENT_INDEX[initialDetent];
+    height.set(d[idx]);
+    setAtFull(idx === d.length - 1);
     if (contentRef.current) contentRef.current.scrollTop = 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Recompute the detents when the visual viewport resizes (iOS keyboard
+  // open/close, URL-bar collapse) and move the sheet to the SAME detent at its
+  // new size — so when the keyboard shrinks the viewport, the sheet (and any
+  // fixed header field) shrink with it and stay above the keyboard.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onVvResize = () => {
+      const old = detentsRef.current;
+      const h = height.get();
+      // Which detent are we (nearest) at right now?
+      let idx = 0;
+      for (let i = 1; i < old.length; i++) {
+        if (Math.abs(old[i] - h) < Math.abs(old[idx] - h)) idx = i;
+      }
+      const d = measureDetents();
+      detentsRef.current = d;
+      height.set(d[idx]);
+      setAtFull(idx === d.length - 1);
+    };
+    vv.addEventListener('resize', onVvResize);
+    return () => vv.removeEventListener('resize', onVvResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Resize by a framer pan delta (the grabber).
@@ -195,6 +236,9 @@ export default function SheetShell({
       >
         <Box sx={{ width: 40, height: 5, borderRadius: 999, bgcolor: 'rgba(255,255,255,0.25)' }} />
       </motion.div>
+      {/* Fixed (non-scrolling) header between the grabber and the content —
+          e.g. Search's field, which must stay visible at every detent. */}
+      {header != null && <Box sx={{ flexShrink: 0 }}>{header}</Box>}
       <Box
         ref={contentRef}
         onScroll={onScroll}

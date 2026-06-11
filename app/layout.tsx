@@ -34,9 +34,10 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  // The on-screen keyboard OVERLAYS the page instead of resizing it, so the app
-  // (map + nav) stays static when the search field is focused; only the search
-  // sheet lifts above the keyboard (it tracks visualViewport itself).
+  // The on-screen keyboard OVERLAYS the page instead of resizing the layout
+  // viewport. The app shell sizes itself to window.visualViewport.height
+  // (AppShell), so when the keyboard opens the shell — nav, sheets, detents —
+  // shrinks to the visible area and restores when it closes.
   interactiveWidget: 'overlays-content',
 };
 

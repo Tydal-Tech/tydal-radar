@@ -83,7 +83,7 @@ export default function FollowUps({
 
   return (
     <>
-      <SheetShell onClose={onOpen} onScroll={onScroll}>
+      <SheetShell onClose={onOpen} onScroll={onScroll} initialDetent="half">
         <Box sx={{ px: 1.5, pb: 3 }}>
       <Typography variant="h6" sx={{ px: 1, pt: 0.5, pb: 1.5 }}>
         Follow-ups

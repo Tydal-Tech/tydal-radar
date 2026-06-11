@@ -19,6 +19,27 @@ function ShellInner() {
   const { views } = useData();
   const followUpCount = views.filter((v) => v.follow_up_date).length;
 
+  // Shell height = the VISUAL viewport height. iOS Safari does not recompute
+  // dvh/vh when the on-screen keyboard opens, so a dvh-sized shell keeps the
+  // nav (absolute, bottom:0 in this shell) anchored to the full screen while
+  // the visible area is smaller — the persistent black gap. visualViewport is
+  // the one value that shrinks when the keyboard opens and restores when it
+  // closes; sizing the shell to it makes the nav ride the visible bottom edge.
+  // Null (no visualViewport: desktop/SSR) falls back to 100dvh.
+  const [vvh, setVvh] = useState<number | null>(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setVvh(vv.height);
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
   // Shrink-on-scroll: the nav condenses while a list is scrolling, expands ~220ms
   // after it stops. setState(true) is a no-op once already true, so scroll stays cheap.
   const [navCondensed, setNavCondensed] = useState(false);
@@ -37,11 +58,14 @@ function ShellInner() {
       sx={{
         // Full screen WITHOUT position:fixed — iOS shifts fixed elements around
         // the keyboard and can leave the shell shifted up (a persistent bottom
-        // gap). Instead html/body are locked to 100dvh + overflow:hidden and this
-        // fills them at 100dvh. dvh ignores the keyboard, so opening it can't
-        // resize/shift the app — the keyboard just overlays it.
+        // gap). html/body stay locked to 100dvh + overflow:hidden; this shell
+        // sizes itself to window.visualViewport.height (the visible area), so
+        // when the iOS keyboard opens the shell shrinks and the absolute
+        // bottom-anchored nav rides the resized container instead of sitting
+        // behind the keyboard / leaving a gap. 100dvh is the SSR/desktop
+        // fallback when visualViewport is unavailable.
         position: 'relative',
-        height: '100dvh',
+        height: vvh != null ? `${vvh}px` : '100dvh',
         width: '100%',
         overflow: 'hidden',
         bgcolor: 'background.default',

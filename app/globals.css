@@ -124,6 +124,9 @@ a {
 
 /* Respect the iPhone safe areas when installed full-screen. */
 :root {
+  /* Real visual-viewport height, set by the inline script in layout.tsx; the
+     dvh fallback covers the first frame before that script runs. */
+  --app-height: 100dvh;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* Floor for the lowest floating control (the nav). The map is full-bleed and

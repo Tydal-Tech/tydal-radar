@@ -35,7 +35,7 @@ function ShellInner() {
     <Box
       sx={{
         position: 'relative',
-        height: '100dvh',
+        height: 'var(--app-height, 100dvh)',
         width: '100vw',
         overflow: 'hidden',
         bgcolor: 'background.default',

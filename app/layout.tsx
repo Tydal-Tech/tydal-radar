@@ -42,6 +42,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={roboto.variable}>
       <body>
+        {/* Pin the app to the real visual viewport height (fixes the iOS PWA
+            bottom gap where 100dvh/100vh can be short on load). Runs before paint. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){function s(){document.documentElement.style.setProperty('--app-height',window.innerHeight+'px');}s();addEventListener('resize',s);addEventListener('orientationchange',s);})();",
+          }}
+        />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
           <Providers>{children}</Providers>
         </AppRouterCacheProvider>

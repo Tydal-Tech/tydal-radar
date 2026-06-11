@@ -91,6 +91,16 @@ export default function ProspectSheet() {
   const peekRef = useRef<HTMLDivElement>(null);
   const halfRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const atFullRef = useRef(atFull);
+  atFullRef.current = atFull;
+  const dragRef = useRef<{
+    startY: number;
+    startH: number;
+    dragging: boolean;
+    lastY: number;
+    lastT: number;
+    vy: number;
+  } | null>(null);
 
   // Load the selected prospect's current state into the editable draft.
   useEffect(() => {
@@ -137,17 +147,15 @@ export default function ProspectSheet() {
     return () => window.removeEventListener('keydown', onKey);
   }, [view]);
 
-  // Drag (the grabber, or anywhere on the card when not at Full): the height
-  // tracks the finger, then snaps to a detent on release.
+  // Resize the sheet by a framer pan delta (used by the grabber).
   const resizeBy = (info: PanInfo) => {
     const d = detentsRef.current;
     height.set(clamp(height.get() - info.delta.y, d[0], d[d.length - 1]));
   };
-  const snapEnd = (info: PanInfo) => {
+  // On release, momentum-snap to a detent (or dismiss on a hard flick at peek).
+  const snapWithVelocity = (vy: number) => {
     const d = detentsRef.current;
     const h = height.get();
-    const vy = info.velocity.y;
-    // Hard flick down at the peek dismisses.
     if (vy > 800 && h <= d[0] + 10) {
       close();
       return;
@@ -167,6 +175,71 @@ export default function ProspectSheet() {
     setAtFull(false);
     if (contentRef.current) contentRef.current.scrollTop = 0;
   };
+
+  // Card-surface drag with native-scroll handoff. Non-passive so we can take the
+  // gesture over from the scroller. Peek/Half: any drag resizes. Full: only a
+  // downward pull from the very top hands off to a collapse — otherwise the
+  // content scrolls natively.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !view) return;
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      dragRef.current = {
+        startY: t.clientY,
+        startH: height.get(),
+        dragging: false,
+        lastY: t.clientY,
+        lastT: performance.now(),
+        vy: 0,
+      };
+    };
+    const onMove = (e: TouchEvent) => {
+      const g = dragRef.current;
+      if (!g) return;
+      const t = e.touches[0];
+      const dy = t.clientY - g.startY;
+      const now = performance.now();
+      g.vy = (t.clientY - g.lastY) / Math.max((now - g.lastT) / 1000, 0.001);
+      g.lastY = t.clientY;
+      g.lastT = now;
+      if (!g.dragging) {
+        if (atFullRef.current) {
+          // Hand off only when pulling down from the very top of the scroll.
+          if (dy > 0 && el.scrollTop <= 0) {
+            g.dragging = true;
+            g.startH = height.get();
+            setAtFull(false);
+          } else {
+            return; // let the content scroll
+          }
+        } else if (Math.abs(dy) > 3) {
+          g.dragging = true;
+        } else {
+          return;
+        }
+      }
+      e.preventDefault();
+      const d = detentsRef.current;
+      height.set(clamp(g.startH - dy, d[0], d[d.length - 1]));
+    };
+    const onEnd = () => {
+      const g = dragRef.current;
+      dragRef.current = null;
+      if (g && g.dragging) snapWithVelocity(g.vy);
+    };
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: true });
+    el.addEventListener('touchcancel', onEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+      el.removeEventListener('touchcancel', onEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   // Reset the editable draft to a blank prospect. Persisted only when the user taps Save.
   function clearAll() {
@@ -244,7 +317,7 @@ export default function ProspectSheet() {
             <motion.div
               onPanStart={lockScroll}
               onPan={(_, info) => resizeBy(info)}
-              onPanEnd={(_, info) => snapEnd(info)}
+              onPanEnd={(_, info) => snapWithVelocity(info.velocity.y)}
               style={{
                 flexShrink: 0,
                 display: 'flex',
@@ -258,24 +331,17 @@ export default function ProspectSheet() {
               <Box sx={{ width: 38, height: 5, borderRadius: 999, bgcolor: 'rgba(255,255,255,0.4)' }} />
             </motion.div>
 
-            <motion.div
+            <Box
               ref={contentRef}
-              onPan={(_, info) => {
-                if (!atFull) resizeBy(info);
-              }}
-              onPanEnd={(_, info) => {
-                if (!atFull) snapEnd(info);
-              }}
-              style={{
+              sx={{
                 position: 'relative',
                 flex: 1,
                 minHeight: 0,
                 overflowY: atFull ? 'auto' : 'hidden',
                 overscrollBehavior: 'contain',
-                paddingLeft: 20,
-                paddingRight: 20,
-                paddingBottom: 'calc(var(--safe-bottom) + 20px)',
-                // Peek/Half: capture drags to resize. Full: let native scroll run.
+                px: 2.5,
+                pb: 'calc(var(--safe-bottom) + 20px)',
+                // Peek/Half: drags resize (handled via touch). Full: native scroll.
                 touchAction: atFull ? 'pan-y' : 'none',
               }}
             >
@@ -501,7 +567,7 @@ export default function ProspectSheet() {
               >
                 {confirmClear ? 'Tap again to clear all' : 'Clear all'}
               </Button>
-            </motion.div>
+            </Box>
           </motion.div>
         </Box>
       )}

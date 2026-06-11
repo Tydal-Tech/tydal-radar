@@ -19,6 +19,17 @@ body {
   box-sizing: border-box;
 }
 
+/* Honor reduced-motion: disable the Liquid Glass springs/transitions/animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
 /* Selected prospect pin: a single expanding cyan ring. Only the selected pin
    carries the .tydal-pin--selected class, so just one element animates at a
    time — idle pins keep the ring hidden and never repaint, keeping map pan/zoom

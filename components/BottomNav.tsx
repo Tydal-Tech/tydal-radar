@@ -38,7 +38,17 @@ export default function BottomNav({
         value={value}
         onChange={(_, v: Tab) => onChange(v)}
         showLabels
-        sx={{ bgcolor: 'transparent', height: 56 }}
+        sx={{
+          bgcolor: 'transparent',
+          height: 60,
+          '& .MuiBottomNavigationAction-root': {
+            minWidth: 0,
+            transition:
+              'color 250ms ease, transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+            '&:active': { transform: 'scale(0.92)' },
+          },
+          '& .MuiBottomNavigationAction-label': { transition: 'font-size 200ms ease, opacity 200ms ease' },
+        }}
       >
         <BottomNavigationAction label="Map" value="map" icon={<MapOutlinedIcon />} />
         <BottomNavigationAction label="Search" value="search" icon={<SearchIcon />} />

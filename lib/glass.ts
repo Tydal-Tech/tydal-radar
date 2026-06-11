@@ -1,16 +1,37 @@
-// iOS 18-style frosted-glass material. Presentation only — shared so every
-// surface (search bar, filter chips, floating nav, sheet, FAB) reads as the
-// same luminous glass: bright backdrop blur, a 1px inset top highlight, a
-// hairline edge, and a soft outer shadow. Translucent fill comes from the
-// theme's `background.paper`; the blur composites the dark map behind it.
-export const GLASS_BLUR = 'blur(30px) saturate(190%)';
+// iOS 26 "Liquid Glass" material. Presentation only — shared so every floating
+// surface (floating nav, map control buttons, filter panel, search field, sheet)
+// reads as the same luminous glass: a strong backdrop blur + saturation boost, a
+// faint specular gradient and inner top highlight, a hairline translucent border,
+// and a soft diffuse shadow. Translucent fill comes from `background.paper`; the
+// blur refracts the dark map behind it.
+//
+// Accessibility: under prefers-reduced-transparency the blur + sheen are dropped
+// for a solid dark surface (applied via the nested media query so it follows the
+// style wherever glassSx is spread).
+export const GLASS_BLUR = 'blur(32px) saturate(200%)';
 
-// Hero surfaces (search bar, floating nav, My-location FAB).
+const REDUCED_TRANSPARENCY = {
+  '@media (prefers-reduced-transparency: reduce)': {
+    backdropFilter: 'none',
+    WebkitBackdropFilter: 'none',
+    backgroundImage: 'none',
+    backgroundColor: '#171c2e',
+  },
+} as const;
+
+// Faint top-down specular sheen layered over the translucent fill.
+const SPECULAR =
+  'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 38%, rgba(255,255,255,0) 100%)';
+
+// Hero surfaces (floating nav, map control buttons, filter panel, search field).
 export const glassSx = {
   backdropFilter: GLASS_BLUR,
   WebkitBackdropFilter: GLASS_BLUR,
-  border: '1px solid rgba(255,255,255,0.14)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 12px 34px rgba(0,0,0,0.40)',
+  backgroundImage: SPECULAR,
+  border: '1px solid rgba(255,255,255,0.16)',
+  boxShadow:
+    'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 0 0 0.5px rgba(255,255,255,0.05), 0 16px 42px rgba(0,0,0,0.44)',
+  ...REDUCED_TRANSPARENCY,
 } as const;
 
 // Chips: same glass, but no border (chips keep their own outline / stage color)
@@ -18,5 +39,7 @@ export const glassSx = {
 export const glassChipSx = {
   backdropFilter: GLASS_BLUR,
   WebkitBackdropFilter: GLASS_BLUR,
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 14px rgba(0,0,0,0.30)',
+  backgroundImage: SPECULAR,
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0,0,0,0.30)',
+  ...REDUCED_TRANSPARENCY,
 } as const;

@@ -19,7 +19,7 @@ const theme = createTheme({
   shape: { borderRadius: 12 },
   typography: {
     fontFamily:
-      'var(--font-roboto), Roboto, -apple-system, "Helvetica Neue", Arial, sans-serif',
+      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-roboto), Roboto, "Helvetica Neue", Arial, sans-serif',
     h6: { fontWeight: 600 },
     button: { textTransform: 'none', fontWeight: 600 },
   },
@@ -51,12 +51,13 @@ const theme = createTheme({
         sizeMedium: { height: 36, fontSize: '0.9rem' },
       },
     },
-    // Brief pressed-state feedback on the floating circular controls.
+    // Press feedback on the floating circular controls: scale down ~0.96 then
+    // spring back (overshoot easing).
     MuiFab: {
       styleOverrides: {
         root: {
-          transition: 'transform 150ms cubic-bezier(0.2, 0, 0.2, 1)',
-          '&:active': { transform: 'scale(0.92)' },
+          transition: 'transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1)',
+          '&:active': { transform: 'scale(0.96)' },
         },
       },
     },

@@ -1,12 +1,15 @@
 // One-time migration: normalize pipeline.contract_expiry free text -> "YYYY-MM".
 //
-// Uses the Supabase SERVICE-ROLE key (admin), NOT the anon key. Supply it via env:
-//   SUPABASE_SERVICE_ROLE_KEY=...  (NEXT_PUBLIC_SUPABASE_URL is read from .env.local)
+// Key: prefers SUPABASE_SERVICE_ROLE_KEY (admin, bypasses RLS); falls back to the
+// publishable/anon key (NEXT_PUBLIC_SUPABASE_ANON_KEY from .env.local). The anon
+// key is sufficient here because the app already updates pipeline.contract_expiry
+// with it under RLS (the prospect card's Save). Use the service-role key only if
+// RLS would block the write.
 //
 // Dry run (default): prints what would change + the unparseable rows.
 //   node --env-file=.env.local scripts/migrate-contract-expiry.mjs
 // Apply:
-//   SUPABASE_SERVICE_ROLE_KEY=xxx node --env-file=.env.local scripts/migrate-contract-expiry.mjs --apply
+//   node --env-file=.env.local scripts/migrate-contract-expiry.mjs --apply
 //
 // Parser is kept in sync with lib/contracts.ts (ambiguous two-digit/two-digit
 // pairs like "03-09" and bare years are rejected — never guessed).
@@ -45,9 +48,11 @@ function parseExpiry(raw) {
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 if (!url || !key) {
-  console.error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+  console.error(
+    'Missing NEXT_PUBLIC_SUPABASE_URL or a key (SUPABASE_SERVICE_ROLE_KEY / NEXT_PUBLIC_SUPABASE_ANON_KEY).',
+  );
   process.exit(1);
 }
 const apply = process.argv.includes('--apply');

@@ -91,7 +91,7 @@ export default function SearchOverlay({
         left: 0,
         right: 0,
         bottom: kbInset > 0 ? `${kbInset}px` : 'var(--nav-total)',
-        height: 'calc(var(--app-height) * 0.55)',
+        height: '55dvh',
         transition: 'bottom 0.25s ease',
         background: '#1a1a1a',
         borderTopLeftRadius: 18,

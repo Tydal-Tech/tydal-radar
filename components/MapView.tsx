@@ -184,7 +184,7 @@ export default function MapView({ searchOpen = false }: { searchOpen?: boolean }
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          transform: searchOpen ? 'translateY(calc(var(--app-height) * -0.55))' : 'none',
+          transform: searchOpen ? 'translateY(-55dvh)' : 'none',
           transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >

@@ -35,15 +35,12 @@ function ShellInner() {
   return (
     <Box
       sx={{
+        // Strictly full screen: a fixed box pinned to all four viewport edges.
+        // inset:0 uses the actual viewport (no vh / innerHeight guesswork), so it
+        // can't under-shoot (bottom gap) or over-shoot (clipped nav). The keyboard
+        // overlays (viewport interactive-widget) so this stays put while typing.
         position: 'fixed',
-        top: 0,
-        left: 0,
-        // Cap at the dynamic viewport: --app-height (window.innerHeight, re-set on
-        // focus) can momentarily overshoot the visible area and push the bottom
-        // nav's labels off-screen — min() with 100dvh keeps the nav fully visible
-        // while still filling any short-load gap.
-        height: 'min(var(--app-height, 100dvh), 100dvh)',
-        width: '100vw',
+        inset: 0,
         overflow: 'hidden',
         bgcolor: 'background.default',
       }}

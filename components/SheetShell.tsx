@@ -40,7 +40,7 @@ export default function SheetShell({
         left: 0,
         right: 0,
         bottom: 'var(--nav-total)',
-        height: `calc(var(--app-height, 100dvh) * ${heightFraction})`,
+        height: `calc(100dvh * ${heightFraction})`,
         maxHeight: 'calc(100dvh - var(--nav-total))',
         background: '#1a1a1a',
         borderTopLeftRadius: 18,

@@ -21,7 +21,7 @@ import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { glassSx, glassCardSx } from '@/lib/glass';
 import type { IcpType } from '@/lib/types';
 
-// Full-screen search (the social-media pattern): a frosted field + a results
+// Full-screen search (the social-media pattern): a dark search field + a results
 // list, reached from the Search nav tab instead of a standing bar. Same
 // name/address match the old bar used; tapping a result selects the prospect
 // and returns to the map (where the sheet opens and the map recenters).

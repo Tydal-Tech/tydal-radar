@@ -128,7 +128,6 @@ export default function MapView() {
           "{shown} of {total}" + tune glyph when filters are trimming the set. */}
       {!loading && (
         <Box
-          className="tydal-glass"
           sx={{
             position: 'absolute',
             top: 'calc(var(--safe-top) + 12px)',
@@ -157,12 +156,11 @@ export default function MapView() {
         </Box>
       )}
 
-      {/* Right-edge stack of equal-size circular glass controls (Apple pattern):
-          Refresh on top, Filter in the middle, My-location below. */}
+      {/* Right-edge stack of equal-size solid near-black circular controls
+          (Uber pattern): Refresh on top, Filter in the middle, My-location below. */}
       <Fab
         aria-label="Refresh prospects"
         size="medium"
-        className="tydal-glass"
         onClick={refresh}
         disabled={refreshing}
         sx={{
@@ -182,7 +180,6 @@ export default function MapView() {
       <Fab
         aria-label="Filters"
         size="medium"
-        className="tydal-glass"
         onClick={(e) => setFilterAnchor(filterAnchor ? null : e.currentTarget)}
         sx={{
           position: 'absolute',
@@ -201,7 +198,6 @@ export default function MapView() {
       <Fab
         aria-label="My location"
         size="medium"
-        className="tydal-glass"
         onClick={handleRecenter}
         sx={{
           position: 'absolute',
@@ -225,7 +221,6 @@ export default function MapView() {
         transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         slotProps={{
           paper: {
-            className: 'tydal-glass',
             sx: { ...glassSx, borderRadius: 3, mt: -1, overflow: 'hidden' },
           },
         }}

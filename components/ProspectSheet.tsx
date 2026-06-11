@@ -284,7 +284,7 @@ export default function ProspectSheet() {
             justifyContent: 'flex-end',
           }}
         >
-          {/* dim + slight map blur; tap to dismiss */}
+          {/* dim scrim; tap to dismiss */}
           <motion.div
             className="tydal-sheet-backdrop"
             onClick={close}

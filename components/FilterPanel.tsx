@@ -41,7 +41,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 
 // The relocated filter UI (was the top chip row): neighborhood / type / stage,
 // each with faceted counts that respect the other active filters. Rendered inside
-// the frosted Popover opened by the map's filter button. Same toggle logic as
+// the dark Popover opened by the map's filter button. Same toggle logic as
 // before — just moved off the map's top edge.
 export default function FilterPanel({
   views,

@@ -1,21 +1,18 @@
 import { createTheme } from '@mui/material/styles';
-import { GLASS_BLUR } from './glass';
 import { PRESS_EASE, PRESS_MS } from './motion';
 
-// Tydal Radar brand: navy surfaces, blue primary actions, cyan accents.
-// iOS 18-style dark glass aesthetic — luminous translucent surfaces (driven by
-// the MuiPaper blur override + the shared glass styles in lib/glass.ts) over a
-// dark map, with high-contrast type. Roboto via the CSS variable in layout.tsx.
+// Tydal Radar brand: dark surfaces, blue primary actions, cyan accents.
+// Uber-Driver-style flat-dark aesthetic — solid near-black surfaces (driven by
+// the shared surface styles in lib/glass.ts) over a dark map, with
+// high-contrast type. Roboto via the CSS variable in layout.tsx.
 
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: { main: '#2563eb' }, // blue — primary actions
     secondary: { main: '#06b6d4' }, // cyan — accents only
-    // Neutral (untinted) clear glass: a neutral grey translucent fill — no navy
-    // cast — paired with a light blur (GLASS_BLUR) so surfaces read as straight
-    // glass, not tinted frost.
-    background: { default: '#0b0f1a', paper: 'rgba(60,60,60,0.46)' },
+    // Solid near-black surfaces: opaque, flat, high-contrast — no blur, no tint.
+    background: { default: '#0b0f1a', paper: '#1c1d21' },
     text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.78)' },
   },
   shape: { borderRadius: 12 },
@@ -26,16 +23,16 @@ const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
-    // Every surface (floating nav, map controls, follow-up cards, prospect sheet)
-    // becomes clear glass: a neutral translucent fill (background.paper) + a light
-    // blur. Hero surfaces add the inset highlight + shadow via the shared glassSx.
+    // Every surface (bottom bar, map controls, follow-up cards, prospect sheet)
+    // is a solid near-black panel: opaque background.paper, no blur, no MUI
+    // elevation overlay. Hero surfaces add the hairline + shadow via glassSx.
     MuiPaper: {
       defaultProps: { elevation: 0 },
       styleOverrides: {
         root: {
           backgroundImage: 'none', // drop MUI's dark elevation overlay
-          backdropFilter: GLASS_BLUR,
-          WebkitBackdropFilter: GLASS_BLUR,
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
         },
       },
     },

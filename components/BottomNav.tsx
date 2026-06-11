@@ -7,7 +7,10 @@ import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import { PRESS_EASE, PRESS_MS } from '@/lib/motion';
 
-export type Tab = 'map' | 'search' | 'followups' | 'contracts';
+// 'analytics' is a valid app tab (the Stats sheet) but has NO bottom-nav action —
+// it's opened from the floating Stats bubble over the map. value='analytics'
+// simply leaves every nav action unselected.
+export type Tab = 'map' | 'search' | 'followups' | 'contracts' | 'analytics';
 
 export default function BottomNav({
   value,

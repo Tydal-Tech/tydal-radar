@@ -22,7 +22,16 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import DirectionsIcon from '@mui/icons-material/Directions';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useData } from './DataProvider';
-import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
+import {
+  STAGES,
+  STAGE_COLORS,
+  STAGE_LABELS,
+  STAGE_ON_COLOR,
+  LOST_REASONS,
+  LOST_REASON_LABELS,
+  type Stage,
+  type LostReason,
+} from '@/lib/stages';
 import { ICP } from '@/lib/icp';
 import { parseExpiry } from '@/lib/contracts';
 import { openDirections } from '@/lib/directions';
@@ -79,6 +88,7 @@ export default function ProspectSheet() {
   const [currentProvider, setCurrentProvider] = useState('');
   const [contractExpiry, setContractExpiry] = useState('');
   const [followUp, setFollowUp] = useState('');
+  const [lostReason, setLostReason] = useState<LostReason | ''>('');
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   // Content scrolls only once fully expanded (iOS Maps); locked at peek/half.
@@ -111,6 +121,7 @@ export default function ProspectSheet() {
       setCurrentProvider(view.current_provider ?? '');
       setContractExpiry(parseExpiry(view.contract_expiry) ?? '');
       setFollowUp(view.follow_up_date ?? '');
+      setLostReason((view.lost_reason as LostReason) || '');
       setConfirmClear(false);
     }
   }, [view]);
@@ -127,6 +138,27 @@ export default function ProspectSheet() {
     setAtFull(false);
     if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [view]);
+
+  // The Lost-reason picker shows/hides with the stage, changing content height —
+  // re-measure the detents, and if Lost was just picked from a collapsed sheet,
+  // open to half so the reason chips (and Save) come into view.
+  useIsoLayout(() => {
+    if (!view) return;
+    const max = maxHeight();
+    const peek = clamp((peekRef.current?.offsetTop ?? max * 0.34) + GRABBER_PX + 8, 220, max);
+    const half = clamp((halfRef.current?.offsetTop ?? max * 0.6) + GRABBER_PX + 8, peek, max);
+    const full = clamp(GRABBER_PX + (contentRef.current?.scrollHeight ?? max), half, max);
+    detentsRef.current = [peek, half, full];
+    if (stage === 'lost' && height.get() < half - 1) {
+      animate(height, half, {
+        type: 'spring',
+        stiffness: SPRING_SHEET.stiffness,
+        damping: SPRING_SHEET.damping,
+      });
+      setAtFull(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
 
   // Auto-cancel the "Clear all" confirm so a stray earlier tap can't wipe data later.
   useEffect(() => {
@@ -249,6 +281,7 @@ export default function ProspectSheet() {
     setCurrentProvider('');
     setContractExpiry('');
     setFollowUp('');
+    setLostReason('');
     setConfirmClear(false);
   }
 
@@ -263,6 +296,7 @@ export default function ProspectSheet() {
         current_provider: currentProvider.trim() ? currentProvider.trim() : null,
         contract_expiry: contractExpiry.trim() ? contractExpiry.trim() : null,
         follow_up_date: followUp || null,
+        lost_reason: stage === 'lost' ? (lostReason || null) : null,
       });
       close();
     } finally {
@@ -429,6 +463,36 @@ export default function ProspectSheet() {
                   );
                 })}
               </Box>
+
+              {stage === 'lost' && (
+                <>
+                  <Typography sx={{ mt: 2.5, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
+                    Lost reason
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                    {LOST_REASONS.map((r) => {
+                      const selected = r === lostReason;
+                      return (
+                        <Chip
+                          key={r}
+                          label={LOST_REASON_LABELS[r]}
+                          onClick={() => setLostReason(selected ? '' : r)}
+                          className={selected ? 'tydal-pop' : undefined}
+                          sx={{
+                            fontWeight: 600,
+                            bgcolor: selected ? STAGE_COLORS.lost : 'rgba(255,255,255,0.06)',
+                            color: selected ? '#fff' : 'text.primary',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            '&:hover': {
+                              bgcolor: selected ? STAGE_COLORS.lost : 'rgba(255,255,255,0.12)',
+                            },
+                          }}
+                        />
+                      );
+                    })}
+                  </Box>
+                </>
+              )}
 
               <Button
                 variant="contained"

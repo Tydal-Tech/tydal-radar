@@ -10,6 +10,7 @@ import MapView from './MapView';
 import FollowUps from './FollowUps';
 import Contracts from './Contracts';
 import SearchOverlay from './SearchOverlay';
+import Analytics from './Analytics';
 import ProspectSheet from './ProspectSheet';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
@@ -103,13 +104,19 @@ function ShellInner() {
             display: 'block',
           }}
         >
-          <MapView sheetOpen={tab !== 'map'} />
+          <MapView
+            sheetOpen={tab !== 'map'}
+            onOpenAnalytics={() => setTab((c) => (c === 'analytics' ? 'map' : 'analytics'))}
+          />
         </Box>
         {/* Search, Follow-ups and Contracts are all pull-up sheets OVER the map
             (same concept as the prospect card): a shared dim scrim + a sliding
             sheet. Tapping the scrim closes back to the map. */}
         <AnimatePresence>
-          {(tab === 'search' || tab === 'followups' || tab === 'contracts') && (
+          {(tab === 'search' ||
+            tab === 'followups' ||
+            tab === 'contracts' ||
+            tab === 'analytics') && (
             <motion.div
               key="sheet-scrim"
               initial={{ opacity: 0 }}
@@ -136,6 +143,9 @@ function ShellInner() {
           )}
           {tab === 'contracts' && (
             <Contracts key="contracts" onOpen={() => setTab('map')} onScroll={onListScroll} />
+          )}
+          {tab === 'analytics' && (
+            <Analytics key="analytics" onClose={() => setTab('map')} onScroll={onListScroll} />
           )}
         </AnimatePresence>
       </Box>

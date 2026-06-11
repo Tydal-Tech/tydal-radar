@@ -7,6 +7,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import TuneIcon from '@mui/icons-material/Tune';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import ClusteredMarkers from './ClusteredMarkers';
 import DemandHeatmap from './DemandHeatmap';
 import FilterPanel, { type Filters } from './FilterPanel';
@@ -18,7 +19,13 @@ import { glassSx } from '@/lib/glass';
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
-export default function MapView({ sheetOpen = false }: { sheetOpen?: boolean }) {
+export default function MapView({
+  sheetOpen = false,
+  onOpenAnalytics,
+}: {
+  sheetOpen?: boolean;
+  onOpenAnalytics?: () => void;
+}) {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
     useData();
   const [filters, setFilters] = useState<Filters>({
@@ -193,6 +200,45 @@ export default function MapView({ sheetOpen = false }: { sheetOpen?: boolean }) 
           transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
+      {/* Floating iOS-26 glass "Stats" pill — opens the Analytics sheet. Sits at
+          the top of the right-edge control stack and rides the FAB lift. */}
+      <Box
+        component="button"
+        type="button"
+        aria-label="Open stats"
+        onClick={onOpenAnalytics}
+        sx={{
+          position: 'absolute',
+          right: 16,
+          bottom: 264,
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 0.75,
+          height: 44,
+          px: 1.75,
+          borderRadius: 999,
+          appearance: 'none',
+          cursor: 'pointer',
+          font: 'inherit',
+          fontWeight: 700,
+          fontSize: '0.92rem',
+          color: '#fff',
+          bgcolor: 'rgba(28,28,30,0.62)',
+          backdropFilter: 'blur(18px) saturate(1.6)',
+          WebkitBackdropFilter: 'blur(18px) saturate(1.6)',
+          border: '1px solid rgba(255,255,255,0.16)',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 8px 24px rgba(0,0,0,0.5)',
+          pointerEvents: 'auto',
+          WebkitTapHighlightColor: 'transparent',
+          transition: 'transform 190ms cubic-bezier(0.34,1.4,0.5,1)',
+          '&:active': { transform: 'scale(0.95)' },
+        }}
+      >
+        <QueryStatsIcon sx={{ fontSize: 20 }} />
+        Stats
+      </Box>
+
       <Fab
         aria-label="Refresh prospects"
         size="medium"

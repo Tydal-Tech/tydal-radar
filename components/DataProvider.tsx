@@ -37,6 +37,7 @@ interface DataContextValue {
       current_provider?: string | null;
       contract_expiry?: string | null;
       follow_up_date?: string | null;
+      lost_reason?: string | null;
     },
   ) => Promise<void>;
 }
@@ -106,12 +107,17 @@ export default function DataProvider({ children }: { children: React.ReactNode }
         current_provider?: string | null;
         contract_expiry?: string | null;
         follow_up_date?: string | null;
+        lost_reason?: string | null;
       },
     ) => {
       const prev = pipelineMap[placeId];
+      const nextStage = patch.stage ?? prev?.stage ?? 'not_knocked';
+      // Stamp stage_updated_at only when the stage actually changes — that's the
+      // timestamp Analytics' weekly activity reads (note/field edits don't count).
+      const stageChanged = patch.stage !== undefined && patch.stage !== prev?.stage;
       const next: Pipeline = {
         place_id: placeId,
-        stage: patch.stage ?? prev?.stage ?? 'not_knocked',
+        stage: nextStage,
         note: patch.note !== undefined ? patch.note : (prev?.note ?? null),
         contact_name:
           patch.contact_name !== undefined
@@ -129,6 +135,11 @@ export default function DataProvider({ children }: { children: React.ReactNode }
           patch.follow_up_date !== undefined
             ? patch.follow_up_date
             : (prev?.follow_up_date ?? null),
+        lost_reason:
+          patch.lost_reason !== undefined ? patch.lost_reason : (prev?.lost_reason ?? null),
+        stage_updated_at: stageChanged
+          ? new Date().toISOString()
+          : (prev?.stage_updated_at ?? null),
       };
       // Optimistic update
       setPipelineMap((m) => ({ ...m, [placeId]: next }));
@@ -155,6 +166,8 @@ export default function DataProvider({ children }: { children: React.ReactNode }
           current_provider: pl?.current_provider ?? null,
           contract_expiry: pl?.contract_expiry ?? null,
           follow_up_date: pl?.follow_up_date ?? null,
+          lost_reason: pl?.lost_reason ?? null,
+          stage_updated_at: pl?.stage_updated_at ?? null,
         };
       }),
     [prospects, pipelineMap],

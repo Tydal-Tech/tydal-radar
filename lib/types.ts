@@ -29,6 +29,8 @@ export interface Pipeline {
   current_provider: string | null;
   contract_expiry: string | null;
   follow_up_date: string | null; // YYYY-MM-DD
+  lost_reason: string | null;
+  stage_updated_at: string | null; // ISO; bumped only when the stage changes
   updated_at?: string;
 }
 
@@ -40,4 +42,6 @@ export interface ProspectView extends Prospect {
   current_provider: string | null;
   contract_expiry: string | null;
   follow_up_date: string | null;
+  lost_reason: string | null;
+  stage_updated_at: string | null;
 }

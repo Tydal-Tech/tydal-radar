@@ -26,6 +26,8 @@ export default function SearchBar({
         px: 1.5,
         py: 1,
         borderRadius: 999,
+        border: '1px solid rgba(255,255,255,0.12)',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.45)',
       }}
     >
       <SearchIcon sx={{ color: 'text.secondary' }} />
@@ -41,7 +43,7 @@ export default function SearchBar({
           display: 'flex',
           alignItems: 'center',
           gap: 0.75,
-          color: '#1a1f36',
+          color: 'text.primary',
           fontWeight: 700,
           fontSize: 15,
           pr: 0.5,

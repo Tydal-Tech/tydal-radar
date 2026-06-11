@@ -92,7 +92,16 @@ export default function ProspectSheet() {
       onClose={close}
       onOpen={() => {}}
       disableSwipeToOpen
-      slotProps={{ paper: { sx: { borderTopLeftRadius: 20, borderTopRightRadius: 20 } } }}
+      slotProps={{
+        paper: {
+          sx: {
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            bgcolor: 'rgba(18,22,38,0.92)',
+            borderTop: '1px solid rgba(255,255,255,0.12)',
+          },
+        },
+      }}
     >
       {/* grabber */}
       <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.5 }}>
@@ -103,10 +112,10 @@ export default function ProspectSheet() {
         <Box sx={{ p: 2.5, pb: 'calc(var(--safe-bottom) + 20px)', maxHeight: '85vh', overflowY: 'auto' }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="h6" sx={{ lineHeight: 1.2 }}>
+              <Typography sx={{ fontSize: '1.4rem', fontWeight: 700, lineHeight: 1.2 }}>
                 {view.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+              <Typography sx={{ mt: 0.5, fontSize: '1rem', color: 'text.secondary' }}>
                 {ICP[view.type as IcpType].label} · {view.neighborhood}
               </Typography>
             </Box>
@@ -122,7 +131,7 @@ export default function ProspectSheet() {
           </Stack>
 
           {view.address && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            <Typography sx={{ mt: 1, fontSize: '1rem', color: 'text.secondary' }}>
               {view.address}
             </Typography>
           )}
@@ -130,6 +139,7 @@ export default function ProspectSheet() {
           <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
             <Button
               variant="outlined"
+              size="large"
               fullWidth
               startIcon={<PhoneIcon />}
               disabled={!view.phone}
@@ -140,6 +150,7 @@ export default function ProspectSheet() {
             </Button>
             <Button
               variant="outlined"
+              size="large"
               fullWidth
               startIcon={<DirectionsIcon />}
               onClick={() => openDirections(view.address ?? `${view.lat},${view.lng}`)}
@@ -159,7 +170,7 @@ export default function ProspectSheet() {
             sx={{ mt: 2.5 }}
           />
 
-          <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 1 }}>
+          <Typography sx={{ mt: 2.5, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
             Stage
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>

@@ -21,7 +21,7 @@ export default function BottomNav({
       elevation={8}
       sx={{
         zIndex: 1200,
-        borderTop: '1px solid #e0e0e0',
+        borderTop: '1px solid rgba(255,255,255,0.12)',
         pb: 'var(--safe-bottom)',
       }}
     >

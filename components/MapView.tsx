@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
+import { Map, AdvancedMarker, ColorScheme, useMap } from '@vis.gl/react-google-maps';
 import { Box, Fab, Snackbar, CircularProgress, LinearProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
@@ -82,6 +82,7 @@ export default function MapView() {
     <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
       <Map
         mapId={MAP_ID}
+        colorScheme={ColorScheme.DARK}
         defaultCenter={MAP_CENTER}
         defaultZoom={MAP_ZOOM}
         gestureHandling="greedy"
@@ -126,6 +127,9 @@ export default function MapView() {
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
+          border: '1px solid rgba(255,255,255,0.12)',
+          backdropFilter: 'blur(24px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >

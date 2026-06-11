@@ -62,8 +62,22 @@ export default function FilterChips({
     ).length;
 
   const anyActive = nb !== 'all' || type !== 'all' || stage !== 'all';
+  // Frosted-glass blur for the translucent (unselected) chips floating over the map.
+  const glass = {
+    backdropFilter: 'blur(24px) saturate(180%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+  };
   const sep = (
-    <Box sx={{ alignSelf: 'center', width: '1px', height: 22, bgcolor: '#cfd4da', mx: 0.5, flexShrink: 0 }} />
+    <Box
+      sx={{
+        alignSelf: 'center',
+        width: '1px',
+        height: 22,
+        bgcolor: 'rgba(255,255,255,0.22)',
+        mx: 0.5,
+        flexShrink: 0,
+      }}
+    />
   );
 
   return (
@@ -89,7 +103,7 @@ export default function FilterChips({
           label="Clear"
           color="default"
           onClick={() => setFilters({ nb: 'all', type: 'all', stage: 'all' })}
-          sx={{ bgcolor: 'background.paper', flexShrink: 0, fontWeight: 600 }}
+          sx={{ bgcolor: 'background.paper', flexShrink: 0, fontWeight: 600, ...glass }}
         />
       )}
 
@@ -102,7 +116,7 @@ export default function FilterChips({
             color={selected ? 'primary' : 'default'}
             variant={selected ? 'filled' : 'outlined'}
             onClick={() => setFilters({ ...filters, nb: selected ? 'all' : name })}
-            sx={{ bgcolor: selected ? undefined : 'background.paper', flexShrink: 0 }}
+            sx={{ bgcolor: selected ? undefined : 'background.paper', flexShrink: 0, ...glass }}
           />
         );
       })}
@@ -118,7 +132,7 @@ export default function FilterChips({
             color={selected ? 'primary' : 'default'}
             variant={selected ? 'filled' : 'outlined'}
             onClick={() => setFilters({ ...filters, type: selected ? 'all' : t })}
-            sx={{ bgcolor: selected ? undefined : 'background.paper', flexShrink: 0 }}
+            sx={{ bgcolor: selected ? undefined : 'background.paper', flexShrink: 0, ...glass }}
           />
         );
       })}
@@ -139,6 +153,7 @@ export default function FilterChips({
               bgcolor: selected ? STAGE_COLORS[s] : 'background.paper',
               color: selected ? STAGE_ON_COLOR[s] : 'text.primary',
               borderColor: STAGE_COLORS[s],
+              ...glass,
             }}
           />
         );

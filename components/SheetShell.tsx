@@ -60,6 +60,10 @@ export default function SheetShell({
   const [atFull, setAtFull] = useState(false);
   const atFullRef = useRef(atFull);
   atFullRef.current = atFull;
+  // Keyboard height (how far the visual viewport shrank below the layout
+  // viewport). The shell stays full-height (static), so only THIS sheet lifts
+  // above the keyboard by anchoring its bottom here instead of at the nav.
+  const [kbInset, setKbInset] = useState(0);
   const dragRef = useRef<{
     startY: number;
     startH: number;
@@ -103,6 +107,20 @@ export default function SheetShell({
     vv.addEventListener('resize', onVvResize);
     return () => vv.removeEventListener('resize', onVvResize);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track the keyboard inset (visual viewport shrink) and lift the sheet above it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => setKbInset(Math.max(0, window.innerHeight - vv.height));
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
   }, []);
 
   // Resize by a framer pan delta (the grabber).
@@ -207,7 +225,9 @@ export default function SheetShell({
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 'var(--nav-total)',
+        // Lift above the keyboard when it's open; otherwise sit above the nav.
+        bottom: kbInset > 0 ? `${kbInset}px` : 'var(--nav-total)',
+        transition: 'bottom 0.25s ease',
         height,
         background: '#1a1a1a',
         borderTopLeftRadius: 18,

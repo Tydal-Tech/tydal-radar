@@ -30,7 +30,15 @@ function ShellInner() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const update = () => setVvh(vv.height);
+    const update = () => {
+      // While a field is focused (keyboard open) keep the shell at its full
+      // height so the map + nav stay STATIC — the keyboard just overlays them and
+      // only the search sheet lifts above it (handled in SheetShell). On blur the
+      // next resize has no focused input and restores the full height.
+      const a = document.activeElement as HTMLElement | null;
+      if (a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return;
+      setVvh(vv.height);
+    };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
     update();

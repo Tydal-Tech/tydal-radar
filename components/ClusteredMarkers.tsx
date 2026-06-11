@@ -26,16 +26,22 @@ const CLUSTER_MAX_ZOOM = 16; // clusters at <=16, individual ICP pins at >=17
 // dimmer, muted ring — so active pipeline stages visually pop on the map.
 const INACTIVE_STAGES = new Set<Stage>(['not_knocked', 'not_interested']);
 
-// Glyph per ICP type, shown in the white center of each pin.
-const ICP_EMOJI: Record<IcpType, string> = {
-  daycare: '🧸',
-  dental: '🦷',
-  gym: '🏋️',
-  office: '🏢',
+// Monochrome white SVG glyph per ICP type, shown in the dark center disc of
+// each pin (Material-style solid icons; daycare is stacked toy blocks, dental
+// is a simple tooth silhouette). Sized to fill the disc minus its padding.
+const ICP_SVG: Record<IcpType, string> = {
+  daycare:
+    '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><rect x="8" y="3.5" width="8" height="8" rx="1.5"/><rect x="3.5" y="12.5" width="8" height="8" rx="1.5"/><rect x="12.5" y="12.5" width="8" height="8" rx="1.5"/></svg>',
+  dental:
+    '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><path d="M12 2C9 2 7 4 7 7c0 1.6.3 3.1.7 4.8.4 1.7.6 3.2.9 4.7.2 1.1.4 2.5 1.4 2.5s1.1-1.4 1.3-2.5c.1-.7.4-1.2.7-1.2s.6.5.7 1.2c.2 1.1.3 2.5 1.3 2.5s1.2-1.4 1.4-2.5c.3-1.5.5-3 .9-4.7C16.7 10.1 17 8.6 17 7c0-3-2-5-5-5z"/></svg>',
+  gym:
+    '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><path d="M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z"/></svg>',
+  office:
+    '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>',
 };
 
-// A compact iOS-style prospect marker: stage-colored body, ICP glyph in a white
-// center, framed by a thin white ring (with a 1px dark separator so the ring
+// A compact iOS-style prospect marker: stage-colored body, white ICP glyph in a
+// dark center disc, framed by a thin white ring (with a 1px dark separator so the ring
 // reads on any stage color) and a soft depth shadow. Active stages render full
 // size and crisp; inactive ones (not_knocked / not_interested) render smaller
 // and dimmer so pipeline activity dominates the map. The 0×0 root sits at the
@@ -45,7 +51,7 @@ function buildPin(v: ProspectView): HTMLElement {
   const active = !INACTIVE_STAGES.has(v.stage);
   const u = urgency(v); // due/overdue follow-up or soon-expiring contract
   const size = active ? 28 : 22; // body diameter
-  const innerSize = active ? 20 : 15; // white glyph disc
+  const innerSize = active ? 20 : 15; // dark glyph disc
   const half = size / 2;
 
   const root = document.createElement('div');
@@ -92,19 +98,21 @@ function buildPin(v: ProspectView): HTMLElement {
       : 'box-shadow:0 0 0 1px #0b0f1a, 0 0 0 2px rgba(255,255,255,0.55), 0 1px 3px rgba(0,0,0,0.4)',
   ].join(';');
 
+  // Dark center disc holding the white SVG glyph; padding keeps the glyph at
+  // ~70% of the disc so it stays crisp and legible at both pin sizes.
   const inner = document.createElement('div');
   inner.style.cssText = [
     `width:${innerSize}px`,
     `height:${innerSize}px`,
     'border-radius:50%',
-    `background:${active ? '#fff' : 'rgba(255,255,255,0.85)'}`,
+    `background:${active ? '#0b0f1a' : 'rgba(11,15,26,0.85)'}`,
     'display:flex',
     'align-items:center',
     'justify-content:center',
-    `font-size:${active ? 13 : 10}px`,
-    'line-height:1',
+    'box-sizing:border-box',
+    `padding:${active ? 3 : 2.5}px`,
   ].join(';');
-  inner.textContent = ICP_EMOJI[v.type as IcpType] ?? '📍';
+  inner.innerHTML = ICP_SVG[v.type as IcpType] ?? ICP_SVG.office;
 
   circle.appendChild(inner);
   root.appendChild(pulse);

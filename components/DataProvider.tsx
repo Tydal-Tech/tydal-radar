@@ -30,7 +30,14 @@ interface DataContextValue {
   refresh: () => Promise<void>;
   save: (
     placeId: string,
-    patch: { stage?: Stage; note?: string | null; follow_up_date?: string | null },
+    patch: {
+      stage?: Stage;
+      note?: string | null;
+      contact_name?: string | null;
+      current_provider?: string | null;
+      contract_expiry?: string | null;
+      follow_up_date?: string | null;
+    },
   ) => Promise<void>;
 }
 
@@ -92,13 +99,32 @@ export default function DataProvider({ children }: { children: React.ReactNode }
   const save = useCallback(
     async (
       placeId: string,
-      patch: { stage?: Stage; note?: string | null; follow_up_date?: string | null },
+      patch: {
+        stage?: Stage;
+        note?: string | null;
+        contact_name?: string | null;
+        current_provider?: string | null;
+        contract_expiry?: string | null;
+        follow_up_date?: string | null;
+      },
     ) => {
       const prev = pipelineMap[placeId];
       const next: Pipeline = {
         place_id: placeId,
         stage: patch.stage ?? prev?.stage ?? 'not_knocked',
         note: patch.note !== undefined ? patch.note : (prev?.note ?? null),
+        contact_name:
+          patch.contact_name !== undefined
+            ? patch.contact_name
+            : (prev?.contact_name ?? null),
+        current_provider:
+          patch.current_provider !== undefined
+            ? patch.current_provider
+            : (prev?.current_provider ?? null),
+        contract_expiry:
+          patch.contract_expiry !== undefined
+            ? patch.contract_expiry
+            : (prev?.contract_expiry ?? null),
         follow_up_date:
           patch.follow_up_date !== undefined
             ? patch.follow_up_date
@@ -125,6 +151,9 @@ export default function DataProvider({ children }: { children: React.ReactNode }
           ...p,
           stage: pl?.stage ?? 'not_knocked',
           note: pl?.note ?? null,
+          contact_name: pl?.contact_name ?? null,
+          current_provider: pl?.current_provider ?? null,
+          contract_expiry: pl?.contract_expiry ?? null,
           follow_up_date: pl?.follow_up_date ?? null,
         };
       }),

@@ -25,6 +25,9 @@ export default function ProspectSheet() {
 
   const [stage, setStage] = useState<Stage>('not_knocked');
   const [note, setNote] = useState('');
+  const [contactName, setContactName] = useState('');
+  const [currentProvider, setCurrentProvider] = useState('');
+  const [contractExpiry, setContractExpiry] = useState('');
   const [followUp, setFollowUp] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -33,6 +36,9 @@ export default function ProspectSheet() {
     if (view) {
       setStage(view.stage);
       setNote(view.note ?? '');
+      setContactName(view.contact_name ?? '');
+      setCurrentProvider(view.current_provider ?? '');
+      setContractExpiry(view.contract_expiry ?? '');
       setFollowUp(view.follow_up_date ?? '');
     }
   }, [view]);
@@ -46,6 +52,9 @@ export default function ProspectSheet() {
       await save(view.place_id, {
         stage,
         note: note.trim() ? note.trim() : null,
+        contact_name: contactName.trim() ? contactName.trim() : null,
+        current_provider: currentProvider.trim() ? currentProvider.trim() : null,
+        contract_expiry: contractExpiry.trim() ? contractExpiry.trim() : null,
         follow_up_date: followUp || null,
       });
       close();
@@ -119,6 +128,15 @@ export default function ProspectSheet() {
 
           <Divider sx={{ my: 2 }} />
 
+          <TextField
+            label="Contact name"
+            placeholder="e.g. Marie (director)"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            fullWidth
+            sx={{ mb: 2.5 }}
+          />
+
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
             Stage
           </Typography>
@@ -141,6 +159,24 @@ export default function ProspectSheet() {
               );
             })}
           </Box>
+
+          <TextField
+            label="Current provider"
+            placeholder="e.g. CleanPro, Jani-King, unknown"
+            value={currentProvider}
+            onChange={(e) => setCurrentProvider(e.target.value)}
+            fullWidth
+            sx={{ mt: 2.5 }}
+          />
+
+          <TextField
+            label="Contract expiry"
+            placeholder="e.g. March 2027, unknown"
+            value={contractExpiry}
+            onChange={(e) => setContractExpiry(e.target.value)}
+            fullWidth
+            sx={{ mt: 2 }}
+          />
 
           <TextField
             label="Note"

@@ -25,6 +25,9 @@ export interface Pipeline {
   place_id: string;
   stage: Stage;
   note: string | null;
+  contact_name: string | null;
+  current_provider: string | null;
+  contract_expiry: string | null;
   follow_up_date: string | null; // YYYY-MM-DD
   updated_at?: string;
 }
@@ -33,5 +36,8 @@ export interface Pipeline {
 export interface ProspectView extends Prospect {
   stage: Stage;
   note: string | null;
+  contact_name: string | null;
+  current_provider: string | null;
+  contract_expiry: string | null;
   follow_up_date: string | null;
 }

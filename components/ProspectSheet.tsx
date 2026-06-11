@@ -93,6 +93,9 @@ export default function ProspectSheet() {
   const [confirmClear, setConfirmClear] = useState(false);
   // Content scrolls only once fully expanded (iOS Maps); locked at peek/half.
   const [atFull, setAtFull] = useState(false);
+  // Keyboard height (visual-viewport shrink) — lifts the sheet above the iOS
+  // keyboard so the lower fields (note / expiry / follow-up) stay visible.
+  const [kbInset, setKbInset] = useState(0);
 
   // Sheet height follows the finger while dragging the grabber; snaps to one of
   // three measured detents [peek, half, full] on release.
@@ -178,6 +181,20 @@ export default function ProspectSheet() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [view]);
+
+  // Track the keyboard inset (visual-viewport shrink) so the sheet can lift above it.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => setKbInset(Math.max(0, window.innerHeight - vv.height));
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
 
   // Resize the sheet by a framer pan delta (used by the grabber).
   const resizeBy = (info: PanInfo) => {
@@ -340,6 +357,9 @@ export default function ProspectSheet() {
               position: 'relative',
               width: '100%',
               height,
+              // Ride above the keyboard when it's open so bottom fields stay visible.
+              marginBottom: kbInset,
+              transition: 'margin-bottom 0.25s ease',
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               overflow: 'hidden',

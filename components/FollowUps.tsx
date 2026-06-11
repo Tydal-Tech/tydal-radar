@@ -17,6 +17,7 @@ import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useData } from './DataProvider';
+import SheetShell from './SheetShell';
 import { SPRING_120 } from '@/lib/motion';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
@@ -81,19 +82,10 @@ export default function FollowUps({
   }
 
   return (
-    <Box
-      onScroll={onScroll}
-      sx={{
-        position: 'absolute',
-        inset: 0,
-        bgcolor: 'background.default',
-        overflowY: 'auto',
-        pt: 'calc(var(--safe-top) + 8px)',
-        px: 1.5,
-        pb: 'calc(var(--ui-bottom) + 80px)',
-      }}
-    >
-      <Typography variant="h6" sx={{ px: 1, py: 1.5 }}>
+    <>
+      <SheetShell onClose={onOpen} onScroll={onScroll}>
+        <Box sx={{ px: 1.5, pb: 3 }}>
+      <Typography variant="h6" sx={{ px: 1, pt: 0.5, pb: 1.5 }}>
         Follow-ups
       </Typography>
 
@@ -196,6 +188,8 @@ export default function FollowUps({
           </AnimatePresence>
         </Stack>
       )}
+        </Box>
+      </SheetShell>
 
       <Snackbar
         open={!!undo}
@@ -216,6 +210,6 @@ export default function FollowUps({
           sx={{ ...glassSx, bgcolor: 'background.paper', color: 'text.primary', borderRadius: 2 }}
         />
       </Snackbar>
-    </Box>
+    </>
   );
 }

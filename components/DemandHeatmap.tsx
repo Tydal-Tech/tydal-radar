@@ -2,16 +2,20 @@
 
 import { useEffect, useRef } from 'react';
 import { useMap } from '@vis.gl/react-google-maps';
+import { STAGE_COLORS, type Stage } from '@/lib/stages';
 import type { ProspectView } from '@/lib/types';
 
-// Uber-Driver-style "demand" glow: a soft transparent→yellow→amber→orange→red
-// ramp showing where prospects are concentrated, rendered under the pins on the
-// dark map.
+// Uber-Driver-style "demand" glow rendered under the pins on the dark map.
+// not_knocked prospects feed the classic transparent→yellow→amber→orange→red
+// DENSITY ramp (where the cold leads pile up). Every prospect whose stage IS set
+// instead glows that STAGE's color (client = green, talked = blue, follow_up =
+// cyan, knocked = amber, not_interested = grey), so progress reads as color on
+// the map. The stage glows composite additively over the demand base.
 //
-// Note: Google removed `google.maps.visualization.HeatmapLayer` from the Maps
-// JS API in v3.65, so this is a small self-contained canvas heatmap: an
-// OverlayView whose canvas lives in the map's `overlayLayer` pane — above the
-// tiles, below the marker panes — so pins always stay visible/tappable on top.
+// Note: Google removed `google.maps.visualization.HeatmapLayer` from the Maps JS
+// API in v3.65, so this is a self-contained canvas heatmap: an OverlayView whose
+// canvas lives in the map's `overlayLayer` pane — above the tiles, below the
+// marker panes — so pins always stay visible/tappable on top.
 const RADIUS = 42; // glow radius per point, in screen px (i.e. "dissipating")
 const OPACITY = 0.65; // overall layer opacity
 const GRADIENT = [
@@ -21,15 +25,21 @@ const GRADIENT = [
   'rgba(255,138,0,0.78)',
   'rgba(244,67,54,0.92)',
 ];
-// Density each point stamps into the alpha buffer: one lone prospect reads as a
-// soft yellow glow; a few overlapping prospects ramp through amber to red.
+// Density each not_knocked point stamps into the alpha buffer.
 const POINT_ALPHA = 0.24;
-// Extra canvas margin (px) on every edge so pans stay covered between idle
-// re-fits, matching the buffered-viewport feel of the marker culling.
+// Extra canvas margin (px) on every edge so pans stay covered between idle re-fits.
 const PAD = 220;
 
-// 256-entry RGBA lookup table sampled from the gradient: density (accumulated
-// alpha 0–255) indexes into it during the colorize pass.
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = hex.replace('#', '');
+  return {
+    r: parseInt(h.slice(0, 2), 16),
+    g: parseInt(h.slice(2, 4), 16),
+    b: parseInt(h.slice(4, 6), 16),
+  };
+}
+
+// 256-entry RGBA LUT sampled from the demand gradient (for not_knocked density).
 function buildLut(): Uint8ClampedArray {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
@@ -42,7 +52,7 @@ function buildLut(): Uint8ClampedArray {
   return ctx.getImageData(0, 0, 256, 1).data;
 }
 
-// A grayscale blurred dot (radial 1→0 alpha falloff) stamped once per point.
+// Grayscale blurred dot (radial 1→0 alpha) — accumulates density for not_knocked.
 function buildStamp(): HTMLCanvasElement {
   const size = RADIUS * 2;
   const canvas = document.createElement('canvas');
@@ -57,6 +67,25 @@ function buildStamp(): HTMLCanvasElement {
   return canvas;
 }
 
+// A soft radial glow in a stage's color, stamped (additively) per set-stage point.
+function buildColorStamp(hex: string): HTMLCanvasElement {
+  const { r, g, b } = hexToRgb(hex);
+  const size = RADIUS * 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const grad = ctx.createRadialGradient(RADIUS, RADIUS, 0, RADIUS, RADIUS, RADIUS);
+  grad.addColorStop(0, `rgba(${r},${g},${b},0.75)`);
+  grad.addColorStop(0.5, `rgba(${r},${g},${b},0.35)`);
+  grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  return canvas;
+}
+
+type Pt = { ll: google.maps.LatLng; stage: Stage };
+
 type HeatOverlay = google.maps.OverlayView & {
   setData(views: readonly ProspectView[]): void;
   setEnabled(on: boolean): void;
@@ -64,8 +93,8 @@ type HeatOverlay = google.maps.OverlayView & {
 };
 
 // Factory (not a module-scope class) because `google.maps.OverlayView` only
-// exists once the Maps API has loaded — callers invoke this when `useMap()`
-// is non-null.
+// exists once the Maps API has loaded — callers invoke this when `useMap()` is
+// non-null.
 function createHeatOverlay(): HeatOverlay {
   const canvas = document.createElement('canvas');
   canvas.style.position = 'absolute';
@@ -73,20 +102,25 @@ function createHeatOverlay(): HeatOverlay {
   const ctx = canvas.getContext('2d')!;
   const stamp = buildStamp();
   const lut = buildLut();
-  let points: google.maps.LatLng[] = [];
+  const colorStamps = new Map<string, HTMLCanvasElement>();
+  const colorStampFor = (hex: string) => {
+    let s = colorStamps.get(hex);
+    if (!s) {
+      s = buildColorStamp(hex);
+      colorStamps.set(hex, s);
+    }
+    return s;
+  };
+  let pts: Pt[] = [];
   let raf = 0;
 
   class Overlay extends google.maps.OverlayView {
-    // Geographic anchors of the canvas's top-left + bottom-right corners and
-    // its render-time width, captured each time render() lays the canvas out.
-    // draw() re-pins (translate) AND re-scales the canvas from these on every
-    // camera-move frame, so the glow tracks both pan and zoom.
     private anchorTL: google.maps.LatLng | null = null;
     private anchorBR: google.maps.LatLng | null = null;
     private renderW = 0;
 
     setData(views: readonly ProspectView[]) {
-      points = views.map((v) => new google.maps.LatLng(v.lat, v.lng));
+      pts = views.map((v) => ({ ll: new google.maps.LatLng(v.lat, v.lng), stage: v.stage }));
       this.refresh();
     }
 
@@ -105,17 +139,12 @@ function createHeatOverlay(): HeatOverlay {
       canvas.remove();
     }
 
-    // The API calls draw() on every camera-move frame. We keep it CHEAP: no
-    // pixel work, just re-pin the already-rendered canvas's top-left to its
-    // stored geographic anchor so the glow translates WITH the map during a
-    // pan. The expensive getImageData render stays gated to idle / data change
-    // / enable via refresh(). (Zoom may briefly mis-scale until idle — same
-    // trade-off as the markers.)
+    // Cheap per-frame re-pin + re-scale so the glow tracks pan + zoom; the
+    // getImageData render stays gated to idle / data change / enable.
     draw() {
       const proj = this.getProjection();
       if (!proj) return;
       if (!this.anchorTL || !this.anchorBR) {
-        // First paint: no anchors yet — schedule the full render.
         this.refresh();
         return;
       }
@@ -124,14 +153,11 @@ function createHeatOverlay(): HeatOverlay {
       if (!pTL || !pBR) return;
       canvas.style.left = `${pTL.x}px`;
       canvas.style.top = `${pTL.y}px`;
-      // Scale is derived from the projection (which updates continuously during
-      // a pinch), so the glow tracks zoom too; idle re-renders it crisp at 1×.
       const scale = this.renderW > 0 ? (pBR.x - pTL.x) / this.renderW : 1;
       canvas.style.transform =
         scale > 0 && Number.isFinite(scale) ? `scale(${scale})` : 'none';
     }
 
-    // rAF-coalesced full redraw — driven by idle / data change / (re)enable.
     refresh() {
       if (raf) return;
       raf = requestAnimationFrame(() => {
@@ -151,7 +177,6 @@ function createHeatOverlay(): HeatOverlay {
       const ne = proj.fromLatLngToDivPixel(bounds.getNorthEast());
       if (!sw || !ne) return;
 
-      // Cover the viewport (plus PAD) in the pane's div-pixel space.
       const left = sw.x - PAD;
       const top = ne.y - PAD;
       const w = Math.ceil(ne.x - sw.x) + PAD * 2;
@@ -159,36 +184,33 @@ function createHeatOverlay(): HeatOverlay {
       if (w <= 0 || h <= 0) return;
       canvas.style.left = `${left}px`;
       canvas.style.top = `${top}px`;
-      // Remember the geographic points under the canvas's top-left + bottom-
-      // right corners and the render-time width, so draw() can cheaply re-pin
-      // (translate) AND re-scale the canvas to track pan + zoom each frame.
       this.anchorTL = proj.fromDivPixelToLatLng(new google.maps.Point(left, top));
       this.anchorBR = proj.fromDivPixelToLatLng(new google.maps.Point(left + w, top + h));
       this.renderW = w;
       canvas.style.transformOrigin = '0 0';
       canvas.style.transform = 'none';
-      // 1× resolution on purpose: the glow is blurry by design, and skipping the
-      // retina upscale keeps the per-pixel colorize pass ~4× cheaper.
       canvas.width = w; // also clears the canvas
       canvas.height = h;
 
-      // Pass 1: accumulate density as grayscale alpha with the blurred stamp.
+      const inView = (x: number, y: number) =>
+        x >= -RADIUS && y >= -RADIUS && x <= w + RADIUS && y <= h + RADIUS;
+
+      // Pass 1 — not_knocked DENSITY → demand gradient (the cold-lead heat base).
       ctx.globalAlpha = POINT_ALPHA;
-      for (const p of points) {
-        const px = proj.fromLatLngToDivPixel(p);
+      for (const p of pts) {
+        if (p.stage !== 'not_knocked') continue;
+        const px = proj.fromLatLngToDivPixel(p.ll);
         if (!px) continue;
         const x = px.x - left;
         const y = px.y - top;
-        // Include just-offscreen points whose glow bleeds into the canvas.
-        if (x < -RADIUS || y < -RADIUS || x > w + RADIUS || y > h + RADIUS) continue;
+        if (!inView(x, y)) continue;
         ctx.drawImage(stamp, x - RADIUS, y - RADIUS);
       }
-
-      // Pass 2: colorize density through the gradient LUT.
+      ctx.globalAlpha = 1;
       const img = ctx.getImageData(0, 0, w, h);
       const d = img.data;
       for (let i = 3; i < d.length; i += 4) {
-        const a = d[i]; // accumulated density 0–255
+        const a = d[i];
         if (!a) continue;
         const j = a * 4;
         d[i - 3] = lut[j];
@@ -197,6 +219,22 @@ function createHeatOverlay(): HeatOverlay {
         d[i] = Math.round(lut[j + 3] * OPACITY);
       }
       ctx.putImageData(img, 0, 0);
+
+      // Pass 2 — every prospect with a SET stage glows its stage color, added
+      // over the demand base (overlapping same-stage points intensify).
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = OPACITY;
+      for (const p of pts) {
+        if (p.stage === 'not_knocked') continue;
+        const px = proj.fromLatLngToDivPixel(p.ll);
+        if (!px) continue;
+        const x = px.x - left;
+        const y = px.y - top;
+        if (!inView(x, y)) continue;
+        ctx.drawImage(colorStampFor(STAGE_COLORS[p.stage]), x - RADIUS, y - RADIUS);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -213,11 +251,9 @@ export default function DemandHeatmap({
 }) {
   const map = useMap();
   const overlayRef = useRef<HeatOverlay | null>(null);
-  // Latest props, readable by the create-effect without retriggering it.
   const viewsRef = useRef(views);
   const enabledRef = useRef(enabled);
 
-  // Attach the overlay once the map is ready; detach on unmount.
   useEffect(() => {
     if (!map) return;
     const overlay = createHeatOverlay();
@@ -225,8 +261,6 @@ export default function DemandHeatmap({
     overlay.setData(viewsRef.current);
     overlay.setEnabled(enabledRef.current);
     overlayRef.current = overlay;
-    // Re-fit the glow to the new viewport once the camera settles (the same
-    // event the marker culling uses) — not on every pan frame.
     const idle = map.addListener('idle', () => overlay.refresh());
     return () => {
       idle.remove();
@@ -235,13 +269,11 @@ export default function DemandHeatmap({
     };
   }, [map]);
 
-  // Rebuild the data points whenever the (filtered) prospect set changes.
   useEffect(() => {
     viewsRef.current = views;
     overlayRef.current?.setData(views);
   }, [views]);
 
-  // Toggle visibility from the heatmap button.
   useEffect(() => {
     enabledRef.current = enabled;
     overlayRef.current?.setEnabled(enabled);

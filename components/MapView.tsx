@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Map, AdvancedMarker, ColorScheme, useMap } from '@vis.gl/react-google-maps';
 import { Box, Fab, Popover, Snackbar, CircularProgress, LinearProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -16,14 +16,14 @@ import { useGeolocation } from '@/lib/useGeolocation';
 import { isUrgent } from '@/lib/contracts';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
 import { glassSx } from '@/lib/glass';
+import { motion, useTransform, motionValue } from 'framer-motion';
+import { useSheetHeight } from './SheetHeightContext';
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
 export default function MapView({
-  sheetOpen = false,
   onOpenAnalytics,
 }: {
-  sheetOpen?: boolean;
   onOpenAnalytics?: () => void;
 }) {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
@@ -41,6 +41,13 @@ export default function MapView({
   const [pendingRecenter, setPendingRecenter] = useState(false);
   const map = useMap();
   const geo = useGeolocation();
+
+  // Lift the floating control stack so its lowest button rides ~12px above the
+  // open sheet's top edge — tracks the sheet's drag/snap via the shared height
+  // (0 when no sheet is open, so the stack rests in place).
+  const fallbackHeight = useRef(motionValue(0)).current;
+  const sheetHeight = useSheetHeight() ?? fallbackHeight;
+  const fabY = useTransform(sheetHeight, (h) => -Math.max(0, h - 12));
 
   const filtered = useMemo(
     () =>
@@ -191,13 +198,12 @@ export default function MapView({
           the search sheet when it opens (Apple Maps pattern); pointer-events
           none on it so the map still pans between buttons (each Fab re-enables
           its own). */}
-      <Box
-        sx={{
+      <motion.div
+        style={{
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          transform: sheetOpen ? 'translateY(-55dvh)' : 'none',
-          transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
+          y: fabY,
         }}
       >
       {/* Stats — opens the Analytics sheet. Icon-only round control matching the
@@ -297,7 +303,7 @@ export default function MapView({
       >
         <MyLocationIcon />
       </Fab>
-      </Box>
+      </motion.div>
 
       <Popover
         open={!!filterAnchor}

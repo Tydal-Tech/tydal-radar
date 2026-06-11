@@ -2,8 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Box } from '@mui/material';
-import { motion, useMotionValue, animate, type PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useMotionValueEvent, animate, type PanInfo } from 'framer-motion';
 import { SPRING_SHEET } from '@/lib/motion';
+import { cssPx } from '@/lib/measure';
+import { useSheetHeight } from './SheetHeightContext';
 
 const useIsoLayout = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
@@ -29,7 +31,11 @@ function measureDetents(): number[] {
   const vh = window.visualViewport?.height ?? window.innerHeight;
   const peek = clamp(vh * 0.4, 240, vh);
   const half = clamp(vh * 0.62, peek, vh);
-  const full = clamp(vh * 0.9, half, vh);
+  // The sheet is bottom-anchored (bottom: var(--nav-total)) and grows up — cap
+  // Full so its TOP clears the nav + the top safe area (Dynamic Island / status
+  // bar) instead of sliding under it. env(safe-area-inset-top) is 0 without one.
+  const topGuard = cssPx('calc(var(--nav-total) + env(safe-area-inset-top, 0px) + 8px)');
+  const full = clamp(vh * 0.9, half, vh - topGuard);
   return [peek, half, full];
 }
 
@@ -64,6 +70,15 @@ export default function SheetShell({
   // viewport). The shell stays full-height (static), so only THIS sheet lifts
   // above the keyboard by anchoring its bottom here instead of at the nav.
   const [kbInset, setKbInset] = useState(0);
+  // Publish our live height to the shared context so the map's floating controls
+  // anchor to this sheet's top edge as it drags/snaps (reset to 0 on close).
+  const sharedHeight = useSheetHeight();
+  useMotionValueEvent(height, 'change', (h) => sharedHeight?.set(h));
+  useEffect(() => {
+    sharedHeight?.set(height.get());
+    return () => sharedHeight?.set(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const dragRef = useRef<{
     startY: number;
     startH: number;

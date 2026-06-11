@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, motionValue } from 'framer-motion';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import DataProvider, { useData } from './DataProvider';
 import BottomNav, { type Tab } from './BottomNav';
@@ -12,6 +12,7 @@ import Contracts from './Contracts';
 import SearchOverlay from './SearchOverlay';
 import Analytics from './Analytics';
 import ProspectSheet from './ProspectSheet';
+import { SheetHeightContext } from './SheetHeightContext';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
 
@@ -19,6 +20,9 @@ function ShellInner() {
   const [tab, setTab] = useState<Tab>('map');
   const { views } = useData();
   const followUpCount = views.filter((v) => v.follow_up_date).length;
+  // Shared MotionValue: the open pull-up sheet publishes its height here; the
+  // map's floating controls read it to anchor to the sheet's top edge.
+  const sheetHeight = useRef(motionValue(0)).current;
 
   // Shell height = the VISUAL viewport height. iOS Safari does not recompute
   // dvh/vh when the on-screen keyboard opens, so a dvh-sized shell keeps the
@@ -71,6 +75,7 @@ function ShellInner() {
   }, [tab]);
 
   return (
+    <SheetHeightContext.Provider value={sheetHeight}>
     <Box
       sx={{
         // Full screen WITHOUT position:fixed — iOS shifts fixed elements around
@@ -105,7 +110,6 @@ function ShellInner() {
           }}
         >
           <MapView
-            sheetOpen={tab !== 'map'}
             onOpenAnalytics={() => setTab((c) => (c === 'analytics' ? 'map' : 'analytics'))}
           />
         </Box>
@@ -157,6 +161,7 @@ function ShellInner() {
       />
       <ProspectSheet />
     </Box>
+    </SheetHeightContext.Provider>
   );
 }
 

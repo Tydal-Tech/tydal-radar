@@ -35,7 +35,8 @@ import {
 import { ICP } from '@/lib/icp';
 import { parseExpiry } from '@/lib/contracts';
 import { openDirections } from '@/lib/directions';
-import { SPRING_120, SPRING_SHEET } from '@/lib/motion';
+import { SPRING_SHEET } from '@/lib/motion';
+import { cssPx } from '@/lib/measure';
 import type { IcpType } from '@/lib/types';
 
 // External label above every field — MUI's floating label sits on the outline
@@ -60,7 +61,13 @@ const actionBtnSx = {
 
 const useIsoLayout = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 const GRABBER_PX = 34;
-const maxHeight = () => (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.92;
+const maxHeight = () => {
+  if (typeof window === 'undefined') return 800;
+  const ih = window.innerHeight;
+  // Keep the sheet's top clear of the top safe area (Dynamic Island / status bar).
+  const topGuard = cssPx('calc(env(safe-area-inset-top, 0px) + 8px)');
+  return Math.min(ih * 0.92, ih - topGuard);
+};
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 
 // Momentum-based snap: a flick carries one detent in its direction; a slow
@@ -447,10 +454,8 @@ export default function ProspectSheet() {
                       type="button"
                       onClick={() => setStage(s)}
                       sx={{
-                        position: 'relative',
                         appearance: 'none',
                         border: 0,
-                        background: 'transparent',
                         borderRadius: 999,
                         px: 1.5,
                         minHeight: 36,
@@ -458,27 +463,17 @@ export default function ProspectSheet() {
                         font: 'inherit',
                         fontWeight: 600,
                         fontSize: '0.9rem',
+                        // The selected color lives on the button itself (no shared
+                        // layout indicator) so it paints on the FIRST tap — iOS was
+                        // leaving the animated indicator a stale grey until a scroll
+                        // forced a repaint.
+                        bgcolor: selected ? STAGE_COLORS[s] : 'transparent',
                         color: selected ? STAGE_ON_COLOR[s] : 'text.primary',
-                        transition: 'color 200ms ease',
+                        transition: 'background-color 200ms ease, color 200ms ease',
                         WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      {selected && (
-                        <motion.div
-                          layoutId="stage-indicator"
-                          transition={SPRING_120}
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            borderRadius: 999,
-                            background: STAGE_COLORS[s],
-                            zIndex: 0,
-                          }}
-                        />
-                      )}
-                      <Box component="span" sx={{ position: 'relative', zIndex: 1 }}>
-                        {STAGE_LABELS[s]}
-                      </Box>
+                      {STAGE_LABELS[s]}
                     </Box>
                   );
                 })}

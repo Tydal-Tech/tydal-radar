@@ -6,8 +6,9 @@ import { MarkerClusterer, SuperClusterAlgorithm, type Renderer } from '@googlema
 import { STAGE_COLORS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import type { IcpType, ProspectView } from '@/lib/types';
 
-// Tydal brand accent. Cyan isn't used by Google's own POI markers, so a constant
-// cyan ring reads instantly as "one of ours" vs. native map pins at full zoom.
+// Tydal brand accent — used only for the selected-pin pulse ring. The constant
+// pin ring is white (still unmistakably "ours" vs. Google's grey POI teardrops)
+// so it never merges with the cyan follow_up stage body.
 const BRAND = '#06b6d4';
 
 // Fraction of the viewport span added as a buffer on every edge, so pins are
@@ -17,8 +18,12 @@ const BUFFER = 0.35;
 
 // Clustering: aggressive radius collapses city/mid zoom into a clean handful of
 // clusters; pins only break out at street level (zoom > maxZoom).
-const CLUSTER_RADIUS = 140;
+const CLUSTER_RADIUS = 220;
 const CLUSTER_MAX_ZOOM = 16; // clusters at <=16, individual ICP pins at >=17
+
+// Stages with no rep activity yet (or a dead end) render recessive — smaller,
+// dimmer, muted ring — so active pipeline stages visually pop on the map.
+const INACTIVE_STAGES = new Set<Stage>(['not_knocked', 'not_interested']);
 
 // Glyph per ICP type, shown in the white center of each pin.
 const ICP_EMOJI: Record<IcpType, string> = {
@@ -29,24 +34,34 @@ const ICP_EMOJI: Record<IcpType, string> = {
 };
 
 // A compact iOS-style prospect marker: stage-colored body, ICP glyph in a white
-// center, framed by a thin constant cyan brand ring (with a 1px dark separator so
-// the ring still reads on a cyan/follow_up body) and a white halo for contrast on
-// the dark map. The 0×0 root sits at the coordinate (AdvancedMarker anchors
-// content bottom-center); children are absolutely centered on it.
+// center, framed by a thin white ring (with a 1px dark separator so the ring
+// reads on any stage color) and a soft depth shadow. Active stages render full
+// size and crisp; inactive ones (not_knocked / not_interested) render smaller
+// and dimmer so pipeline activity dominates the map. The 0×0 root sits at the
+// coordinate (AdvancedMarker anchors content bottom-center); children are
+// absolutely centered on it.
 function buildPin(v: ProspectView): HTMLElement {
+  const active = !INACTIVE_STAGES.has(v.stage);
+  const size = active ? 28 : 22; // body diameter
+  const innerSize = active ? 20 : 15; // white glyph disc
+  const half = size / 2;
+
   const root = document.createElement('div');
   root.style.position = 'relative';
   root.className = 'tydal-pin';
+  // Dim on the root (not the body): globals.css animates the body's opacity to 1
+  // on enter, so an inline body opacity would be overridden mid-animation.
+  if (!active) root.style.opacity = '0.65';
 
   // Expanding ring shown only for the selected pin (animated via globals.css).
   const pulse = document.createElement('div');
   pulse.className = 'tydal-pulse-ring';
   pulse.style.cssText = [
     'position:absolute',
-    'left:-14px',
-    'bottom:-14px',
-    'width:28px',
-    'height:28px',
+    `left:${-half}px`,
+    `bottom:${-half}px`,
+    `width:${size}px`,
+    `height:${size}px`,
     'border-radius:50%',
     `border:1.5px solid ${BRAND}`,
     'box-sizing:border-box',
@@ -57,29 +72,32 @@ function buildPin(v: ProspectView): HTMLElement {
   circle.className = 'tydal-pin-body';
   circle.style.cssText = [
     'position:absolute',
-    'left:-14px',
-    'bottom:-14px',
-    'width:28px',
-    'height:28px',
+    `left:${-half}px`,
+    `bottom:${-half}px`,
+    `width:${size}px`,
+    `height:${size}px`,
     'border-radius:50%',
     `background:${STAGE_COLORS[v.stage]}`,
     'display:flex',
     'align-items:center',
     'justify-content:center',
-    // body · 1px dark gap · thin cyan brand ring · white halo · soft depth shadow
-    `box-shadow:0 0 0 1px #0b0f1a, 0 0 0 2.5px ${BRAND}, 0 0 0 3.5px rgba(255,255,255,0.6), 0 1px 5px rgba(0,0,0,0.5)`,
+    // body · 1px dark gap · white ring (crisp when active, thin+muted when
+    // inactive) · soft depth shadow
+    active
+      ? 'box-shadow:0 0 0 1px #0b0f1a, 0 0 0 2.5px #fff, 0 1px 5px rgba(0,0,0,0.5)'
+      : 'box-shadow:0 0 0 1px #0b0f1a, 0 0 0 2px rgba(255,255,255,0.55), 0 1px 3px rgba(0,0,0,0.4)',
   ].join(';');
 
   const inner = document.createElement('div');
   inner.style.cssText = [
-    'width:20px',
-    'height:20px',
+    `width:${innerSize}px`,
+    `height:${innerSize}px`,
     'border-radius:50%',
-    'background:#fff',
+    `background:${active ? '#fff' : 'rgba(255,255,255,0.85)'}`,
     'display:flex',
     'align-items:center',
     'justify-content:center',
-    'font-size:13px',
+    `font-size:${active ? 13 : 10}px`,
     'line-height:1',
   ].join(';');
   inner.textContent = ICP_EMOJI[v.type as IcpType] ?? '📍';
@@ -116,11 +134,15 @@ function clusterStage(stages: Stage[]): Stage {
 
 // A cluster bubble colored by its dominant (most-advanced) stage, with the count
 // inside. White ring + soft shadow language matches the pins, but a solid colored
-// disc (no cyan brand ring) so "group, zoom in" reads distinctly from a door.
+// disc (no brand ring) so "group, zoom in" reads distinctly from a door. Clusters
+// whose best stage is still inactive (all not_knocked / not_interested) render
+// quieter so clusters containing real pipeline activity draw the eye.
 function buildCluster(count: number, stage: Stage): HTMLElement {
+  const active = !INACTIVE_STAGES.has(stage);
   const size = count < 10 ? 40 : count < 50 ? 48 : 56;
   const root = document.createElement('div');
   root.style.position = 'relative';
+  if (!active) root.style.opacity = '0.7';
 
   const circle = document.createElement('div');
   circle.style.cssText = [
@@ -138,7 +160,9 @@ function buildCluster(count: number, stage: Stage): HTMLElement {
     'font-weight:700',
     `font-size:${count < 100 ? 15 : 13}px`,
     'font-family:var(--font-roboto), Roboto, sans-serif',
-    'box-shadow:0 0 0 2px rgba(255,255,255,0.85), 0 2px 6px rgba(0,0,0,0.5)',
+    active
+      ? 'box-shadow:0 0 0 2px rgba(255,255,255,0.85), 0 2px 6px rgba(0,0,0,0.5)'
+      : 'box-shadow:0 0 0 2px rgba(255,255,255,0.55), 0 2px 5px rgba(0,0,0,0.4)',
   ].join(';');
   circle.textContent = String(count);
 

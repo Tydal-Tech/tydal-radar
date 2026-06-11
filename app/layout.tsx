@@ -43,11 +43,16 @@ export default function RootLayout({
     <html lang="en" className={montserrat.variable}>
       <body>
         {/* Pin the app to the real visual viewport height (fixes the iOS PWA
-            bottom gap where 100dvh/100vh can be short on load). Runs before paint. */}
+            bottom gap where 100dvh/100vh can be short on load). Runs before paint.
+            `resize` keeps the keyboard guard (skip while an input is focused) so
+            the layout doesn't jump while typing; but every time the app is
+            (re)opened — PWA relaunch, tab refocus, bfcache restore — we force a
+            re-assert (no guard) plus scrollTo(0,0) so there's never a stale
+            offset/gap. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){function s(){var a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;document.documentElement.style.setProperty('--app-height',window.innerHeight+'px');}s();addEventListener('resize',s);addEventListener('orientationchange',s);})();",
+              "(function(){function h(){document.documentElement.style.setProperty('--app-height',window.innerHeight+'px');}function s(){var a=document.activeElement;if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;h();}function f(){h();window.scrollTo(0,0);}s();addEventListener('resize',s);addEventListener('orientationchange',s);document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')f();});addEventListener('pageshow',f);addEventListener('focus',f);})();",
           }}
         />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>

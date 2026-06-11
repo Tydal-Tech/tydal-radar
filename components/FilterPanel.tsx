@@ -97,6 +97,8 @@ export default function FilterPanel({
       {/* One-tap urgency filter: due/overdue follow-ups + soon-expiring contracts. */}
       <Box sx={{ mt: 1.5 }}>
         <Chip
+          key={`attention-${attention}`}
+          className={attention ? 'tydal-pop' : undefined}
           label={`Needs attention ${urgentCount}`}
           variant={attention ? 'filled' : 'outlined'}
           onClick={() => setFilters({ ...filters, attention: !attention })}
@@ -115,11 +117,16 @@ export default function FilterPanel({
           const selected = nb === name;
           return (
             <Chip
-              key={name}
+              key={`${name}-${selected}`}
+              className={selected ? 'tydal-pop' : undefined}
               label={`${NB_SHORT[name] ?? name} ${countNb(name)}`}
-              color={selected ? 'primary' : 'default'}
               variant={selected ? 'filled' : 'outlined'}
               onClick={() => setFilters({ ...filters, nb: selected ? 'all' : name })}
+              sx={{
+                bgcolor: selected ? '#FFFFFF' : 'transparent',
+                color: selected ? '#000000' : 'text.primary',
+                borderColor: 'rgba(255,255,255,0.3)',
+              }}
             />
           );
         })}
@@ -131,11 +138,16 @@ export default function FilterPanel({
           const selected = type === t;
           return (
             <Chip
-              key={t}
+              key={`${t}-${selected}`}
+              className={selected ? 'tydal-pop' : undefined}
               label={`${ICP[t].label} ${countType(t)}`}
-              color={selected ? 'primary' : 'default'}
               variant={selected ? 'filled' : 'outlined'}
               onClick={() => setFilters({ ...filters, type: selected ? 'all' : t })}
+              sx={{
+                bgcolor: selected ? '#FFFFFF' : 'transparent',
+                color: selected ? '#000000' : 'text.primary',
+                borderColor: 'rgba(255,255,255,0.3)',
+              }}
             />
           );
         })}
@@ -147,7 +159,8 @@ export default function FilterPanel({
           const selected = stage === s;
           return (
             <Chip
-              key={s}
+              key={`${s}-${selected}`}
+              className={selected ? 'tydal-pop' : undefined}
               label={`${STAGE_LABELS[s]} ${countStage(s)}`}
               variant={selected ? 'filled' : 'outlined'}
               onClick={() => setFilters({ ...filters, stage: selected ? 'all' : s })}

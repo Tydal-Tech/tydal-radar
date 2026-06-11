@@ -16,6 +16,13 @@ const targets = [
 ];
 
 for (const { file, size } of targets) {
-  await sharp(src).resize(size, size).png().toFile(join(dir, file));
+  // Flatten onto black + drop alpha so the tile is a fully opaque square with no
+  // transparency/padding — iOS adds its own rounding (don't pre-round the source).
+  await sharp(src)
+    .resize(size, size, { fit: 'cover', position: 'center' })
+    .flatten({ background: '#000000' })
+    .removeAlpha()
+    .png()
+    .toFile(join(dir, file));
   console.log(`wrote ${file} (${size}x${size})`);
 }

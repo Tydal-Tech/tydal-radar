@@ -4,7 +4,7 @@
 // tiles, Supabase) are never intercepted, so they always go straight to the
 // network.
 
-const CACHE = 'tydal-radar-v2';
+const CACHE = 'tydal-radar-v3';
 const STATIC_PATTERNS = [/\/_next\/static\//, /\/icons\//, /\/manifest\.webmanifest$/];
 
 self.addEventListener('install', () => {

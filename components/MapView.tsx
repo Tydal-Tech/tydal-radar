@@ -7,6 +7,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import TuneIcon from '@mui/icons-material/Tune';
 import ClusteredMarkers from './ClusteredMarkers';
+import DemandHeatmap from './DemandHeatmap';
 import FilterPanel, { type Filters } from './FilterPanel';
 import { useData } from './DataProvider';
 import { useGeolocation } from '@/lib/useGeolocation';
@@ -101,6 +102,8 @@ export default function MapView() {
         clickableIcons={false}
         style={{ width: '100%', height: '100%' }}
       >
+        {/* Demand-style glow under the pins: where prospects are concentrated. */}
+        <DemandHeatmap views={filtered} />
         <ClusteredMarkers views={filtered} selectedId={selectedId} onSelect={setSelectedId} />
         {geo.position && (
           <AdvancedMarker position={geo.position} title="Your location" zIndex={9999}>

@@ -10,26 +10,23 @@ import {
   byNeighborhood,
   lostReasons,
   LOST_GATE,
+  CONVERSION_GATE,
 } from '@/lib/analytics';
 import { STAGE_COLORS, LOST_REASON_LABELS } from '@/lib/stages';
+import { cardSurfaceSx } from '@/lib/glass';
 
-// iOS-26 "liquid glass" card: translucent dark fill + a hairline top highlight +
-// soft depth. Safe to blur here — the sheet is static, not over the live map.
+// Filled container card — matches the Detail sheet's surfaces: a fill slightly
+// lighter than the screen, 16px radius, no border/blur, 20px internal padding.
 const cardSx = {
-  borderRadius: 4,
-  p: 2,
-  bgcolor: 'rgba(30,30,32,0.66)',
-  backdropFilter: 'blur(20px) saturate(1.5)',
-  WebkitBackdropFilter: 'blur(20px) saturate(1.5)',
-  border: '1px solid rgba(255,255,255,0.10)',
-  boxShadow: '0 1px 0 rgba(255,255,255,0.12) inset, 0 10px 30px rgba(0,0,0,0.45)',
+  ...cardSurfaceSx,
+  p: 2.5,
 } as const;
 
 const tnum = { fontVariantNumeric: 'tabular-nums' } as const;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <Box sx={{ ...cardSx, mb: 1.75 }}>
+    <Box sx={{ ...cardSx, mb: 2 }}>
       <Typography
         sx={{
           fontSize: '0.74rem',
@@ -206,10 +203,11 @@ export default function Analytics({
                   {Math.round((c.rate ?? 0) * 100)}%
                 </Typography>
               ) : (
+                // Progress toward the 20-entry gate (reads as progress, not an error).
                 <Typography
-                  sx={{ fontSize: '0.78rem', color: 'text.secondary', textAlign: 'right', maxWidth: 150 }}
+                  sx={{ fontSize: '0.95rem', fontWeight: 700, color: 'text.secondary', ...tnum }}
                 >
-                  need {c.need} more to read reliably
+                  {c.parent}/{CONVERSION_GATE}
                 </Typography>
               )}
             </Stack>

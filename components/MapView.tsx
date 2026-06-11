@@ -200,44 +200,26 @@ export default function MapView({
           transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >
-      {/* Floating iOS-26 glass "Stats" pill — opens the Analytics sheet. Sits at
-          the top of the right-edge control stack and rides the FAB lift. */}
-      <Box
-        component="button"
-        type="button"
+      {/* Stats — opens the Analytics sheet. Icon-only round control matching the
+          other right-edge FABs; sits at the top of the stack and rides the lift. */}
+      <Fab
         aria-label="Open stats"
+        size="medium"
         onClick={onOpenAnalytics}
         sx={{
           position: 'absolute',
           right: 16,
           bottom: 264,
           zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.75,
-          height: 44,
-          px: 1.75,
-          borderRadius: 999,
-          appearance: 'none',
-          cursor: 'pointer',
-          font: 'inherit',
-          fontWeight: 700,
-          fontSize: '0.92rem',
-          color: '#fff',
-          bgcolor: 'rgba(28,28,30,0.62)',
-          backdropFilter: 'blur(18px) saturate(1.6)',
-          WebkitBackdropFilter: 'blur(18px) saturate(1.6)',
-          border: '1px solid rgba(255,255,255,0.16)',
-          boxShadow: '0 1px 0 rgba(255,255,255,0.2) inset, 0 8px 24px rgba(0,0,0,0.5)',
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          ...glassSx,
           pointerEvents: 'auto',
-          WebkitTapHighlightColor: 'transparent',
-          transition: 'transform 190ms cubic-bezier(0.34,1.4,0.5,1)',
-          '&:active': { transform: 'scale(0.95)' },
+          '&:hover': { bgcolor: 'background.paper' },
         }}
       >
-        <QueryStatsIcon sx={{ fontSize: 20 }} />
-        Stats
-      </Box>
+        <QueryStatsIcon />
+      </Fab>
 
       <Fab
         aria-label="Refresh prospects"

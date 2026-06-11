@@ -27,3 +27,13 @@ export const glassCardSx = {
   transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.5, 1)',
   '&:active': { transform: 'scale(0.985)' },
 } as const;
+
+// Filled container surface for cards/sections (Analytics, list rows): a fill
+// slightly lighter than the dark screen at a calm 16px radius and NO border —
+// elevation comes from the fill alone, matching the prospect (Detail) sheet's
+// surfaces (rgba(255,255,255,0.05)). Container cards only — buttons/chips/tags
+// keep their pill shapes.
+export const cardSurfaceSx = {
+  borderRadius: '16px',
+  backgroundColor: 'rgba(255,255,255,0.05)',
+} as const;

@@ -29,14 +29,25 @@ import { openDirections } from '@/lib/directions';
 import { SPRING_120, SPRING_SHEET } from '@/lib/motion';
 import type { IcpType } from '@/lib/types';
 
-// External label for date/month fields: those inputs are always non-empty, so a
-// floating MUI label sits on the border and reads as overlapping — put it above.
+// External label above every field — MUI's floating label sits on the outline
+// border in this build and reads as overlapping, so all fields use a static
+// label above instead.
 const fieldLabelSx = {
   display: 'block',
   mb: 0.75,
   fontSize: '0.9rem',
   fontWeight: 500,
   color: 'text.secondary',
+} as const;
+
+// Secondary action buttons (Call / Directions): a high-contrast light outline +
+// faint glass fill so they read clearly on the dark sheet next to the solid Save.
+const actionBtnSx = {
+  color: 'text.primary',
+  borderColor: 'rgba(255,255,255,0.4)',
+  bgcolor: 'rgba(255,255,255,0.05)',
+  '&:hover': { borderColor: 'rgba(255,255,255,0.6)', bgcolor: 'rgba(255,255,255,0.1)' },
+  '&.Mui-disabled': { color: 'rgba(255,255,255,0.32)', borderColor: 'rgba(255,255,255,0.14)' },
 } as const;
 
 // Avoid the SSR useLayoutEffect warning while still measuring before paint.
@@ -337,6 +348,7 @@ export default function ProspectSheet() {
                   disabled={!view.phone}
                   component="a"
                   href={view.phone ? `tel:${view.phone}` : undefined}
+                  sx={actionBtnSx}
                 >
                   Call
                 </Button>
@@ -346,6 +358,7 @@ export default function ProspectSheet() {
                   fullWidth
                   startIcon={<DirectionsIcon />}
                   onClick={() => openDirections(view.address ?? `${view.lat},${view.lng}`)}
+                  sx={actionBtnSx}
                 >
                   Directions
                 </Button>
@@ -359,22 +372,31 @@ export default function ProspectSheet() {
 
               <Divider sx={{ my: 2 }} />
 
-              <TextField
-                label="Contact name"
-                placeholder="e.g. Marie (director)"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                fullWidth
-              />
+              <Box>
+                <Typography component="label" htmlFor="contact-name" sx={fieldLabelSx}>
+                  Contact name
+                </Typography>
+                <TextField
+                  id="contact-name"
+                  placeholder="e.g. Marie (director)"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  fullWidth
+                />
+              </Box>
 
-              <TextField
-                label="Current provider"
-                placeholder="e.g. CleanPro, Jani-King, unknown"
-                value={currentProvider}
-                onChange={(e) => setCurrentProvider(e.target.value)}
-                fullWidth
-                sx={{ mt: 2.5 }}
-              />
+              <Box sx={{ mt: 2.5 }}>
+                <Typography component="label" htmlFor="current-provider" sx={fieldLabelSx}>
+                  Current provider
+                </Typography>
+                <TextField
+                  id="current-provider"
+                  placeholder="e.g. CleanPro, Jani-King, unknown"
+                  value={currentProvider}
+                  onChange={(e) => setCurrentProvider(e.target.value)}
+                  fullWidth
+                />
+              </Box>
 
               <Box sx={{ mt: 2.5 }}>
                 <Typography component="label" htmlFor="contract-expiry" sx={fieldLabelSx}>
@@ -389,15 +411,19 @@ export default function ProspectSheet() {
                 />
               </Box>
 
-              <TextField
-                label="Note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                multiline
-                minRows={2}
-                fullWidth
-                sx={{ mt: 2.5 }}
-              />
+              <Box sx={{ mt: 2.5 }}>
+                <Typography component="label" htmlFor="note" sx={fieldLabelSx}>
+                  Note
+                </Typography>
+                <TextField
+                  id="note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  multiline
+                  minRows={2}
+                  fullWidth
+                />
+              </Box>
 
               <Box sx={{ mt: 2 }}>
                 <Typography component="label" htmlFor="follow-up" sx={fieldLabelSx}>

@@ -14,7 +14,7 @@ const theme = createTheme({
     secondary: { main: '#06b6d4' }, // cyan — accents only
     // Lighter, luminous frost so the map shows through with a glow rather than
     // reading as a near-solid dark panel.
-    background: { default: '#0b0f1a', paper: 'rgba(34,40,62,0.58)' },
+    background: { default: '#0b0f1a', paper: 'rgba(56,64,92,0.46)' },
     text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.78)' },
   },
   shape: { borderRadius: 12 },

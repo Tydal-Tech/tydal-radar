@@ -8,7 +8,10 @@
 // Accessibility: under prefers-reduced-transparency the blur + sheen are dropped
 // for a solid dark surface (applied via the nested media query so it follows the
 // style wherever glassSx is spread).
-export const GLASS_BLUR = 'blur(32px) saturate(200%)';
+// brightness() lifts the blurred backdrop so the glass glows lighter than what's
+// behind it (the iOS "the glass floats above the surface" read) rather than
+// sitting at the same darkness and looking like a flat slab.
+export const GLASS_BLUR = 'blur(28px) saturate(180%) brightness(1.12)';
 
 const REDUCED_TRANSPARENCY = {
   '@media (prefers-reduced-transparency: reduce)': {
@@ -21,16 +24,16 @@ const REDUCED_TRANSPARENCY = {
 
 // Faint top-down specular sheen layered over the translucent fill.
 const SPECULAR =
-  'linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02) 38%, rgba(255,255,255,0) 100%)';
+  'linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05) 34%, rgba(255,255,255,0) 62%)';
 
 // Hero surfaces (floating nav, map control buttons, filter panel, search field).
 export const glassSx = {
   backdropFilter: GLASS_BLUR,
   WebkitBackdropFilter: GLASS_BLUR,
   backgroundImage: SPECULAR,
-  border: '1px solid rgba(255,255,255,0.2)',
+  border: '1px solid rgba(255,255,255,0.3)',
   boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.10), inset 0 -10px 18px rgba(255,255,255,0.03), inset 0 0 0 0.5px rgba(255,255,255,0.05), 0 16px 42px rgba(0,0,0,0.44)',
+    'inset 0 1px 0.5px rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.08), inset 0 0 0 0.5px rgba(255,255,255,0.06), 0 14px 40px rgba(0,0,0,0.5)',
   ...REDUCED_TRANSPARENCY,
 } as const;
 
@@ -41,7 +44,7 @@ export const glassChipSx = {
   WebkitBackdropFilter: GLASS_BLUR,
   backgroundImage: SPECULAR,
   boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(255,255,255,0.10), 0 4px 14px rgba(0,0,0,0.30)',
+    'inset 0 1px 0.5px rgba(255,255,255,0.4), inset 0 -1px 0 rgba(255,255,255,0.08), 0 4px 14px rgba(0,0,0,0.30)',
   ...REDUCED_TRANSPARENCY,
 } as const;
 

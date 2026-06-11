@@ -1,8 +1,7 @@
 'use client';
 
-import { Paper, InputBase, Box } from '@mui/material';
+import { Paper, InputBase } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import RadarIcon from '@mui/icons-material/Radar';
 import { glassSx } from '@/lib/glass';
 
 export default function SearchBar({
@@ -39,20 +38,6 @@ export default function SearchBar({
         sx={{ flex: 1, fontSize: 16 }}
         inputProps={{ 'aria-label': 'Search prospects' }}
       />
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.75,
-          color: 'text.primary',
-          fontWeight: 700,
-          fontSize: 15,
-          pr: 0.5,
-        }}
-      >
-        <RadarIcon sx={{ color: 'secondary.main', fontSize: 22 }} />
-        Tydal Radar
-      </Box>
     </Paper>
   );
 }

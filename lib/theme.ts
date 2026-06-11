@@ -12,9 +12,10 @@ const theme = createTheme({
     mode: 'dark',
     primary: { main: '#2563eb' }, // blue — primary actions
     secondary: { main: '#06b6d4' }, // cyan — accents only
-    // Lighter, luminous frost so the map shows through with a glow rather than
-    // reading as a near-solid dark panel.
-    background: { default: '#0b0f1a', paper: 'rgba(56,64,92,0.46)' },
+    // Neutral (untinted) clear glass: a neutral grey translucent fill — no navy
+    // cast — paired with a light blur (GLASS_BLUR) so surfaces read as straight
+    // glass, not tinted frost.
+    background: { default: '#0b0f1a', paper: 'rgba(60,60,60,0.46)' },
     text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.78)' },
   },
   shape: { borderRadius: 12 },
@@ -25,9 +26,9 @@ const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
-    // Every surface (search bar, floating nav, follow-up cards, prospect sheet)
-    // becomes frosted glass: translucent navy fill (background.paper) + blur.
-    // Hero surfaces add the inset highlight + shadow via the shared glassSx.
+    // Every surface (floating nav, map controls, follow-up cards, prospect sheet)
+    // becomes clear glass: a neutral translucent fill (background.paper) + a light
+    // blur. Hero surfaces add the inset highlight + shadow via the shared glassSx.
     MuiPaper: {
       defaultProps: { elevation: 0 },
       styleOverrides: {

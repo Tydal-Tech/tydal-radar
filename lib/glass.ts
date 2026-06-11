@@ -8,10 +8,11 @@
 // Accessibility: under prefers-reduced-transparency the blur + sheen are dropped
 // for a solid dark surface (applied via the nested media query so it follows the
 // style wherever glassSx is spread).
-// brightness() lifts the blurred backdrop so the glass glows lighter than what's
-// behind it (the iOS "the glass floats above the surface" read) rather than
-// sitting at the same darkness and looking like a flat slab.
-export const GLASS_BLUR = 'blur(28px) saturate(180%) brightness(1.12)';
+// "Straight glass": a light, clear blur — not a heavy frost — and NO saturate
+// (saturate boosts the backdrop's color and reads as a tint). The fill is neutral
+// grey, so there's no color cast; the glass look comes from the light blur + the
+// white edge highlights, consistent whether the map is moving or still.
+export const GLASS_BLUR = 'blur(5px)';
 
 const REDUCED_TRANSPARENCY = {
   '@media (prefers-reduced-transparency: reduce)': {

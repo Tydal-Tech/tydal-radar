@@ -76,25 +76,6 @@ export default function MapView() {
     }
   }, [pendingRecenter, geo.position, map]);
 
-  // Gesture-aware blur: while the map is actively panning/zooming, tag the
-  // document root with .map-moving so .tydal-glass surfaces pause their backdrop
-  // blur (re-blurring a moving map every frame is the one real perf risk).
-  // Blur is restored on idle; fill, sheen and border stay throughout.
-  useEffect(() => {
-    if (!map) return;
-    const start = () => document.documentElement.classList.add('map-moving');
-    const end = () => document.documentElement.classList.remove('map-moving');
-    const l1 = map.addListener('dragstart', start);
-    const l2 = map.addListener('zoom_changed', start);
-    const l3 = map.addListener('idle', end);
-    return () => {
-      l1.remove();
-      l2.remove();
-      l3.remove();
-      document.documentElement.classList.remove('map-moving');
-    };
-  }, [map]);
-
   // Tap the locate button: first use asks permission; afterwards it recenters.
   const handleRecenter = () => {
     if (!geo.enabled) {

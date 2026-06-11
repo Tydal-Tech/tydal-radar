@@ -40,7 +40,7 @@ export default function Contracts({
     });
 
   return (
-    <SheetShell onClose={onOpen} onScroll={onScroll} initialDetent="half">
+    <SheetShell onClose={onOpen} onScroll={onScroll} initialDetent="peek">
       <Box sx={{ px: 1.5, pb: 3 }}>
       <Typography variant="h6" sx={{ px: 1, pt: 0.5, pb: 1.5 }}>
         Contracts

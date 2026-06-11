@@ -2,10 +2,11 @@
 
 import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
+import SearchIcon from '@mui/icons-material/Search';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import { glassSx } from '@/lib/glass';
 
-export type Tab = 'map' | 'followups';
+export type Tab = 'map' | 'search' | 'followups';
 
 export default function BottomNav({
   value,
@@ -18,7 +19,7 @@ export default function BottomNav({
 }) {
   return (
     // Floating frosted pill detached from every edge, sitting over a full-bleed
-    // map. Glass material matches the search bar; corners clipped to the pill.
+    // map. Search lives here as an icon (social-media pattern), not a standing bar.
     <Paper
       elevation={0}
       sx={{
@@ -39,10 +40,9 @@ export default function BottomNav({
         sx={{ bgcolor: 'transparent', height: 56 }}
       >
         <BottomNavigationAction label="Map" value="map" icon={<MapOutlinedIcon />} />
+        <BottomNavigationAction label="Search" value="search" icon={<SearchIcon />} />
         <BottomNavigationAction
-          label={
-            followUpCount ? `Follow-ups (${followUpCount})` : 'Follow-ups'
-          }
+          label={followUpCount ? `Follow-ups (${followUpCount})` : 'Follow-ups'}
           value="followups"
           icon={<EventNoteOutlinedIcon />}
         />

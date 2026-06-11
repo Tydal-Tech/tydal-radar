@@ -7,6 +7,7 @@ import DataProvider, { useData } from './DataProvider';
 import BottomNav, { type Tab } from './BottomNav';
 import MapView from './MapView';
 import FollowUps from './FollowUps';
+import SearchOverlay from './SearchOverlay';
 import ProspectSheet from './ProspectSheet';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
@@ -32,6 +33,7 @@ function ShellInner() {
         <Box sx={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
           <MapView />
         </Box>
+        {tab === 'search' && <SearchOverlay onClose={() => setTab('map')} />}
         {tab === 'followups' && <FollowUps onOpen={() => setTab('map')} />}
       </Box>
       <BottomNav value={tab} onChange={setTab} followUpCount={followUpCount} />

@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Map, AdvancedMarker, ColorScheme, useMap } from '@vis.gl/react-google-maps';
-import { Box, Fab, Snackbar, CircularProgress, LinearProgress } from '@mui/material';
+import { Box, Fab, Popover, Snackbar, CircularProgress, LinearProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
-import SearchBar from './SearchBar';
+import TuneIcon from '@mui/icons-material/Tune';
 import ClusteredMarkers from './ClusteredMarkers';
-import FilterChips, { type Filters } from './FilterChips';
+import FilterPanel, { type Filters } from './FilterPanel';
 import { useData } from './DataProvider';
 import { useGeolocation } from '@/lib/useGeolocation';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
@@ -19,25 +19,27 @@ export default function MapView() {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
     useData();
   const [filters, setFilters] = useState<Filters>({ nb: 'all', type: 'all', stage: 'all' });
-  const [query, setQuery] = useState('');
+  const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
   const [pullMsg, setPullMsg] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [pendingRecenter, setPendingRecenter] = useState(false);
   const map = useMap();
   const geo = useGeolocation();
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return views.filter(
-      (v) =>
-        (filters.nb === 'all' || v.neighborhood === filters.nb) &&
-        (filters.type === 'all' || v.type === filters.type) &&
-        (filters.stage === 'all' || v.stage === filters.stage) &&
-        (!q || v.name.toLowerCase().includes(q) || (v.address ?? '').toLowerCase().includes(q)),
-    );
-  }, [views, filters, query]);
+  const filtered = useMemo(
+    () =>
+      views.filter(
+        (v) =>
+          (filters.nb === 'all' || v.neighborhood === filters.nb) &&
+          (filters.type === 'all' || v.type === filters.type) &&
+          (filters.stage === 'all' || v.stage === filters.stage),
+      ),
+    [views, filters],
+  );
 
-  // Recenter the map when a prospect is selected (e.g. tapped from Follow-ups).
+  const anyFilter = filters.nb !== 'all' || filters.type !== 'all' || filters.stage !== 'all';
+
+  // Recenter the map when a prospect is selected (e.g. tapped from search / Follow-ups).
   useEffect(() => {
     if (!map || !selectedId) return;
     const v = views.find((x) => x.place_id === selectedId);
@@ -108,9 +110,6 @@ export default function MapView() {
         )}
       </Map>
 
-      <SearchBar value={query} onChange={setQuery} />
-      <FilterChips views={views} query={query} filters={filters} setFilters={setFilters} />
-
       {(loading || refreshing) && (
         <LinearProgress
           sx={{ position: 'absolute', top: 'var(--safe-top)', left: 0, right: 0, zIndex: 1100 }}
@@ -118,7 +117,7 @@ export default function MapView() {
       )}
 
       {/* Right-edge stack of equal-size circular glass controls (Apple pattern):
-          Refresh on top, My-location below. */}
+          Refresh on top, Filter in the middle, My-location below. */}
       <Fab
         aria-label="Refresh prospects"
         size="medium"
@@ -139,13 +138,31 @@ export default function MapView() {
       </Fab>
 
       <Fab
+        aria-label="Filters"
+        size="medium"
+        onClick={(e) => setFilterAnchor(filterAnchor ? null : e.currentTarget)}
+        sx={{
+          position: 'absolute',
+          right: 16,
+          bottom: 'calc(var(--ui-bottom) + 132px)',
+          zIndex: 1000,
+          bgcolor: 'background.paper',
+          color: anyFilter ? 'secondary.main' : 'text.primary',
+          ...glassSx,
+          '&:hover': { bgcolor: 'background.paper' },
+        }}
+      >
+        <TuneIcon />
+      </Fab>
+
+      <Fab
         aria-label="My location"
         size="medium"
         onClick={handleRecenter}
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--ui-bottom) + 132px)',
+          bottom: 'calc(var(--ui-bottom) + 72px)',
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
@@ -156,13 +173,24 @@ export default function MapView() {
         <MyLocationIcon />
       </Fab>
 
+      <Popover
+        open={!!filterAnchor}
+        anchorEl={filterAnchor}
+        onClose={() => setFilterAnchor(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { ...glassSx, borderRadius: 3, mt: -1, overflow: 'hidden' } } }}
+      >
+        <FilterPanel views={views} filters={filters} setFilters={setFilters} />
+      </Popover>
+
       <Snackbar
         open={!!pullMsg}
         autoHideDuration={4000}
         onClose={() => setPullMsg(null)}
         message={pullMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 128px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 72px)' }}
       />
       <Snackbar
         open={!!errMsg}
@@ -170,7 +198,7 @@ export default function MapView() {
         onClose={() => setErrMsg(null)}
         message={errMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 128px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 72px)' }}
       />
     </Box>
   );

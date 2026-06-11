@@ -1,0 +1,148 @@
+'use client';
+
+import type { ReactNode } from 'react';
+import { Box, Chip, Stack, Typography, Button } from '@mui/material';
+import { NEIGHBORHOODS, ICP, ICP_TYPES } from '@/lib/icp';
+import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
+import type { IcpType, ProspectView } from '@/lib/types';
+
+const NB_SHORT: Record<string, string> = {
+  'Ville-Marie': 'Ville-Marie',
+  'Shaughnessy Village': 'Shaughnessy',
+  'Plateau-Mont-Royal': 'Plateau',
+  'Côte-des-Neiges–NDG': 'CDN–NDG',
+};
+
+export interface Filters {
+  nb: string | 'all';
+  type: IcpType | 'all';
+  stage: Stage | 'all';
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <Typography
+      sx={{
+        mt: 2,
+        mb: 1,
+        fontSize: '0.78rem',
+        fontWeight: 700,
+        color: 'text.secondary',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
+// The relocated filter UI (was the top chip row): neighborhood / type / stage,
+// each with faceted counts that respect the other active filters. Rendered inside
+// the frosted Popover opened by the map's filter button. Same toggle logic as
+// before — just moved off the map's top edge.
+export default function FilterPanel({
+  views,
+  filters,
+  setFilters,
+}: {
+  views: ProspectView[];
+  filters: Filters;
+  setFilters: (f: Filters) => void;
+}) {
+  const { nb, type, stage } = filters;
+
+  const countNb = (name: string) =>
+    views.filter(
+      (v) =>
+        (type === 'all' || v.type === type) &&
+        (stage === 'all' || v.stage === stage) &&
+        v.neighborhood === name,
+    ).length;
+  const countType = (t: IcpType) =>
+    views.filter(
+      (v) =>
+        (nb === 'all' || v.neighborhood === nb) &&
+        (stage === 'all' || v.stage === stage) &&
+        v.type === t,
+    ).length;
+  const countStage = (s: Stage) =>
+    views.filter(
+      (v) =>
+        (nb === 'all' || v.neighborhood === nb) &&
+        (type === 'all' || v.type === type) &&
+        v.stage === s,
+    ).length;
+
+  const anyActive = nb !== 'all' || type !== 'all' || stage !== 'all';
+
+  return (
+    <Box sx={{ width: 290, maxWidth: '88vw', maxHeight: '62vh', overflowY: 'auto', p: 2 }}>
+      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '1.1rem' }}>Filters</Typography>
+        {anyActive && (
+          <Button
+            size="small"
+            onClick={() => setFilters({ nb: 'all', type: 'all', stage: 'all' })}
+            sx={{ color: 'text.secondary', minWidth: 0 }}
+          >
+            Clear all
+          </Button>
+        )}
+      </Stack>
+
+      <SectionLabel>Neighborhood</SectionLabel>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {NEIGHBORHOODS.map(({ name }) => {
+          const selected = nb === name;
+          return (
+            <Chip
+              key={name}
+              label={`${NB_SHORT[name] ?? name} ${countNb(name)}`}
+              color={selected ? 'primary' : 'default'}
+              variant={selected ? 'filled' : 'outlined'}
+              onClick={() => setFilters({ ...filters, nb: selected ? 'all' : name })}
+            />
+          );
+        })}
+      </Box>
+
+      <SectionLabel>Type</SectionLabel>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {ICP_TYPES.map((t) => {
+          const selected = type === t;
+          return (
+            <Chip
+              key={t}
+              label={`${ICP[t].label} ${countType(t)}`}
+              color={selected ? 'primary' : 'default'}
+              variant={selected ? 'filled' : 'outlined'}
+              onClick={() => setFilters({ ...filters, type: selected ? 'all' : t })}
+            />
+          );
+        })}
+      </Box>
+
+      <SectionLabel>Stage</SectionLabel>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {STAGES.map((s) => {
+          const selected = stage === s;
+          return (
+            <Chip
+              key={s}
+              label={`${STAGE_LABELS[s]} ${countStage(s)}`}
+              variant={selected ? 'filled' : 'outlined'}
+              onClick={() => setFilters({ ...filters, stage: selected ? 'all' : s })}
+              sx={{
+                fontWeight: 600,
+                bgcolor: selected ? STAGE_COLORS[s] : 'transparent',
+                color: selected ? STAGE_ON_COLOR[s] : 'text.primary',
+                borderColor: STAGE_COLORS[s],
+              }}
+            />
+          );
+        })}
+      </Box>
+    </Box>
+  );
+}

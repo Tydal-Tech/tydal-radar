@@ -30,8 +30,7 @@ import { SPRING_120, SPRING_SHEET } from '@/lib/motion';
 import type { IcpType } from '@/lib/types';
 
 // External label above every field — MUI's floating label sits on the outline
-// border in this build and reads as overlapping, so all fields use a static
-// label above instead.
+// border in this build and reads as overlapping.
 const fieldLabelSx = {
   display: 'block',
   mb: 0.75,
@@ -40,7 +39,7 @@ const fieldLabelSx = {
   color: 'text.secondary',
 } as const;
 
-// Secondary action buttons (Call / Directions): a high-contrast light outline +
+// Secondary action buttons (Call / Directions): high-contrast light outline +
 // faint glass fill so they read clearly on the dark sheet next to the solid Save.
 const actionBtnSx = {
   color: 'text.primary',
@@ -50,12 +49,25 @@ const actionBtnSx = {
   '&.Mui-disabled': { color: 'rgba(255,255,255,0.32)', borderColor: 'rgba(255,255,255,0.14)' },
 } as const;
 
-// Avoid the SSR useLayoutEffect warning while still measuring before paint.
 const useIsoLayout = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-
 const GRABBER_PX = 34;
 const maxHeight = () => (typeof window !== 'undefined' ? window.innerHeight : 800) * 0.92;
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
+// Momentum-based snap: a flick carries one detent in its direction; a slow
+// release snaps to the nearest detent by position. `detents` is ascending.
+function snapTarget(h: number, vy: number, detents: number[]): number {
+  const FLICK = 450;
+  if (vy < -FLICK) {
+    const up = detents.filter((d) => d > h + 1);
+    return up.length ? Math.min(...up) : Math.max(...detents);
+  }
+  if (vy > FLICK) {
+    const down = detents.filter((d) => d < h - 1);
+    return down.length ? Math.max(...down) : Math.min(...detents);
+  }
+  return detents.reduce((a, b) => (Math.abs(b - h) < Math.abs(a - h) ? b : a));
+}
 
 export default function ProspectSheet() {
   const { views, selectedId, setSelectedId, save } = useData();
@@ -69,12 +81,16 @@ export default function ProspectSheet() {
   const [followUp, setFollowUp] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  // Content scrolls only once fully expanded (iOS Maps); locked at peek/half.
+  const [atFull, setAtFull] = useState(false);
 
-  // Continuous-drag sheet: height follows the finger between a measured collapsed
-  // peek (name + stage + Save) and a max height. No detents / snapping.
+  // Sheet height follows the finger while dragging the grabber; snaps to one of
+  // three measured detents [peek, half, full] on release.
   const height = useMotionValue(0);
-  const minRef = useRef(320);
+  const detentsRef = useRef<number[]>([320, 520, 720]);
   const peekRef = useRef<HTMLDivElement>(null);
+  const halfRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Load the selected prospect's current state into the editable draft.
   useEffect(() => {
@@ -89,13 +105,17 @@ export default function ProspectSheet() {
     }
   }, [view]);
 
-  // Measure the collapsed peek (through the Save button) and open at that height.
+  // Measure the three detents and open at the peek.
   useIsoLayout(() => {
     if (!view) return;
     const max = maxHeight();
-    const peek = peekRef.current ? peekRef.current.offsetTop : max * 0.42;
-    minRef.current = clamp(peek + GRABBER_PX + 8, 220, max);
-    height.set(minRef.current);
+    const peek = clamp((peekRef.current?.offsetTop ?? max * 0.34) + GRABBER_PX + 8, 220, max);
+    const half = clamp((halfRef.current?.offsetTop ?? max * 0.6) + GRABBER_PX + 8, peek, max);
+    const full = clamp(GRABBER_PX + (contentRef.current?.scrollHeight ?? max), half, max);
+    detentsRef.current = [peek, half, full];
+    height.set(peek);
+    setAtFull(false);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [view]);
 
   // Auto-cancel the "Clear all" confirm so a stray earlier tap can't wipe data later.
@@ -117,25 +137,33 @@ export default function ProspectSheet() {
     return () => window.removeEventListener('keydown', onKey);
   }, [view]);
 
-  // Grabber drag: the sheet height tracks the finger 1:1.
+  // Grabber drag: lock content scroll, then track the finger between peek and full.
+  const onGrabStart = () => {
+    setAtFull(false);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
+  };
   const onGrabPan = (_: PointerEvent, info: PanInfo) => {
-    height.set(clamp(height.get() - info.delta.y, minRef.current, maxHeight()));
+    const d = detentsRef.current;
+    height.set(clamp(height.get() - info.delta.y, d[0], d[d.length - 1]));
   };
   const onGrabPanEnd = (_: PointerEvent, info: PanInfo) => {
-    const min = minRef.current;
-    // Flick down at the bottom dismisses.
-    if (height.get() <= min + 6 && info.velocity.y > 600) {
+    const d = detentsRef.current;
+    const h = height.get();
+    const vy = info.velocity.y;
+    // Hard flick down at the peek dismisses.
+    if (vy > 800 && h <= d[0] + 10) {
       close();
       return;
     }
-    // Otherwise carry the release velocity into a spring settle (no snapping).
-    const projected = clamp(height.get() - info.velocity.y * 0.12, min, maxHeight());
-    animate(height, projected, {
+    const target = snapTarget(h, vy, d);
+    animate(height, target, {
       type: 'spring',
       stiffness: SPRING_SHEET.stiffness,
       damping: SPRING_SHEET.damping,
-      velocity: -info.velocity.y,
+      velocity: -vy,
     });
+    setAtFull(target === d[d.length - 1]);
+    if (target !== d[d.length - 1] && contentRef.current) contentRef.current.scrollTop = 0;
   };
 
   // Reset the editable draft to a blank prospect. Persisted only when the user taps Save.
@@ -192,7 +220,7 @@ export default function ProspectSheet() {
             style={{ position: 'absolute', inset: 0 }}
           />
 
-          {/* sheet: spring slide-in; height is finger-driven while dragging the grabber */}
+          {/* sheet: spring slide-in; height is finger-driven, snaps to detents */}
           <motion.div
             className="tydal-sheet"
             initial={{ y: '100%' }}
@@ -210,8 +238,9 @@ export default function ProspectSheet() {
               flexDirection: 'column',
             }}
           >
-            {/* grabber = drag handle (height follows the finger) */}
+            {/* grabber = drag handle */}
             <motion.div
+              onPanStart={onGrabStart}
               onPan={onGrabPan}
               onPanEnd={onGrabPanEnd}
               style={{
@@ -228,17 +257,18 @@ export default function ProspectSheet() {
             </motion.div>
 
             <Box
+              ref={contentRef}
               sx={{
                 position: 'relative',
                 flex: 1,
                 minHeight: 0,
-                overflowY: 'auto',
+                overflowY: atFull ? 'auto' : 'hidden',
                 overscrollBehavior: 'contain',
                 px: 2.5,
                 pb: 'calc(var(--safe-bottom) + 20px)',
               }}
             >
-              {/* --- Peek: identity + stage + Save (measured for the collapsed height) --- */}
+              {/* ---- PEEK: identity + stage + Save ---- */}
               <Stack
                 direction="row"
                 spacing={1}
@@ -266,7 +296,6 @@ export default function ProspectSheet() {
               <Typography sx={{ mt: 2.5, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
                 Stage
               </Typography>
-              {/* Segmented stage selector with a fluid sliding indicator. */}
               <Box
                 sx={{
                   display: 'flex',
@@ -335,10 +364,9 @@ export default function ProspectSheet() {
                 {saving ? 'Saving…' : 'Save'}
               </Button>
 
-              {/* peek boundary marker (measured for the collapsed height) */}
               <Box ref={peekRef} aria-hidden sx={{ height: 0 }} />
 
-              {/* --- Details: revealed continuously as you drag up --- */}
+              {/* ---- HALF: actions + address + contact + provider ---- */}
               <Stack direction="row" spacing={1.5} sx={{ mt: 2.5 }}>
                 <Button
                   variant="outlined"
@@ -398,6 +426,9 @@ export default function ProspectSheet() {
                 />
               </Box>
 
+              <Box ref={halfRef} aria-hidden sx={{ height: 0 }} />
+
+              {/* ---- FULL: expiry + note + follow-up + clear ---- */}
               <Box sx={{ mt: 2.5 }}>
                 <Typography component="label" htmlFor="contract-expiry" sx={fieldLabelSx}>
                   Contract expiry
@@ -425,7 +456,7 @@ export default function ProspectSheet() {
                 />
               </Box>
 
-              <Box sx={{ mt: 2 }}>
+              <Box sx={{ mt: 2.5 }}>
                 <Typography component="label" htmlFor="follow-up" sx={fieldLabelSx}>
                   Follow-up date
                 </Typography>

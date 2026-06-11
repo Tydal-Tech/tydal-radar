@@ -1,11 +1,25 @@
 'use client';
 
-import { Box, Typography, Card, CardActionArea, Chip, Stack } from '@mui/material';
+import { useState } from 'react';
+import {
+  Box,
+  Typography,
+  Card,
+  CardActionArea,
+  Chip,
+  Stack,
+  IconButton,
+  Button,
+  Snackbar,
+  SnackbarContent,
+} from '@mui/material';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { useData } from './DataProvider';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
-import type { IcpType } from '@/lib/types';
+import { glassSx } from '@/lib/glass';
+import type { IcpType, ProspectView } from '@/lib/types';
 
 const OVERDUE = '#d93025';
 
@@ -23,12 +37,37 @@ function formatDate(ymd: string) {
 }
 
 export default function FollowUps({ onOpen }: { onOpen: () => void }) {
-  const { views, setSelectedId } = useData();
+  const { views, setSelectedId, save } = useData();
   const today = todayStr();
+  // Holds the just-cleared follow-up so it can be restored via the Undo snackbar.
+  const [undo, setUndo] = useState<{ id: string; name: string; date: string | null } | null>(null);
 
   const items = views
     .filter((v) => v.follow_up_date)
     .sort((a, b) => (a.follow_up_date! < b.follow_up_date! ? -1 : 1));
+
+  // Clear only the follow-up date (same null-date path as the in-sheet clear);
+  // stage/note/contact/provider/expiry and the pipeline record itself are kept.
+  async function clearFollowUp(v: ProspectView) {
+    setUndo({ id: v.place_id, name: v.name, date: v.follow_up_date });
+    try {
+      await save(v.place_id, { follow_up_date: null });
+    } catch {
+      // save() already surfaces the error and reverts its optimistic update.
+      setUndo(null);
+    }
+  }
+
+  async function undoClear() {
+    if (!undo) return;
+    const { id, date } = undo;
+    setUndo(null);
+    try {
+      await save(id, { follow_up_date: date });
+    } catch {
+      // handled by save()
+    }
+  }
 
   return (
     <Box
@@ -68,13 +107,17 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
             const overdue = v.follow_up_date! < today;
             const dueToday = v.follow_up_date === today;
             return (
-              <Card key={v.place_id} variant="outlined" sx={{ borderRadius: 3 }}>
+              <Card
+                key={v.place_id}
+                variant="outlined"
+                sx={{ borderRadius: 3, display: 'flex', alignItems: 'center' }}
+              >
                 <CardActionArea
                   onClick={() => {
                     setSelectedId(v.place_id);
                     onOpen();
                   }}
-                  sx={{ p: 1.75 }}
+                  sx={{ p: 1.75, flex: 1 }}
                 >
                   <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
                     <Box sx={{ minWidth: 0 }}>
@@ -105,11 +148,38 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
                     />
                   </Stack>
                 </CardActionArea>
+                <IconButton
+                  aria-label={`Clear follow-up for ${v.name}`}
+                  onClick={() => clearFollowUp(v)}
+                  sx={{ mx: 0.5, flexShrink: 0, color: 'text.secondary' }}
+                >
+                  <CloseIcon />
+                </IconButton>
               </Card>
             );
           })}
         </Stack>
       )}
+
+      <Snackbar
+        open={!!undo}
+        autoHideDuration={5000}
+        onClose={(_, reason) => {
+          if (reason !== 'clickaway') setUndo(null);
+        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ mb: 'calc(var(--safe-bottom) + 96px)' }}
+      >
+        <SnackbarContent
+          message={undo ? `Follow-up cleared — ${undo.name}` : ''}
+          action={
+            <Button color="secondary" size="small" onClick={undoClear} sx={{ fontWeight: 700 }}>
+              Undo
+            </Button>
+          }
+          sx={{ ...glassSx, bgcolor: 'background.paper', color: 'text.primary', borderRadius: 2 }}
+        />
+      </Snackbar>
     </Box>
   );
 }

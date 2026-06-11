@@ -2,6 +2,7 @@
 
 import { Box, Chip, Stack } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { glassChipSx } from '@/lib/glass';
 import { NEIGHBORHOODS, ICP, ICP_TYPES } from '@/lib/icp';
 import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import type { IcpType, ProspectView } from '@/lib/types';
@@ -62,11 +63,9 @@ export default function FilterChips({
     ).length;
 
   const anyActive = nb !== 'all' || type !== 'all' || stage !== 'all';
-  // Frosted-glass blur for the translucent (unselected) chips floating over the map.
-  const glass = {
-    backdropFilter: 'blur(24px) saturate(180%)',
-    WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-  };
+  // Frosted-glass treatment for the chips floating over the map (no border so
+  // the outlined / stage-colored chip edges stay intact).
+  const glass = glassChipSx;
   const sep = (
     <Box
       sx={{

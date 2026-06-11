@@ -1,18 +1,20 @@
 import { createTheme } from '@mui/material/styles';
+import { GLASS_BLUR } from './glass';
 
 // Tydal Radar brand: navy surfaces, blue primary actions, cyan accents.
-// Apple-Maps-style dark, frosted-glass aesthetic — translucent blurred surfaces
-// (driven by the MuiPaper override) over a dark map, with high-contrast type.
-// Roboto via the CSS variable wired up in app/layout.tsx.
-const FROST = 'blur(24px) saturate(180%)';
+// iOS 18-style dark glass aesthetic — luminous translucent surfaces (driven by
+// the MuiPaper blur override + the shared glass styles in lib/glass.ts) over a
+// dark map, with high-contrast type. Roboto via the CSS variable in layout.tsx.
 
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: { main: '#2563eb' }, // blue — primary actions
     secondary: { main: '#06b6d4' }, // cyan — accents only
-    background: { default: '#0b0f1a', paper: 'rgba(22,27,45,0.80)' },
-    text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.72)' },
+    // Lighter, luminous frost so the map shows through with a glow rather than
+    // reading as a near-solid dark panel.
+    background: { default: '#0b0f1a', paper: 'rgba(34,40,62,0.58)' },
+    text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.78)' },
   },
   shape: { borderRadius: 12 },
   typography: {
@@ -22,15 +24,16 @@ const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
-    // Every surface (search bar, bottom nav, follow-up cards, prospect sheet)
+    // Every surface (search bar, floating nav, follow-up cards, prospect sheet)
     // becomes frosted glass: translucent navy fill (background.paper) + blur.
+    // Hero surfaces add the inset highlight + shadow via the shared glassSx.
     MuiPaper: {
       defaultProps: { elevation: 0 },
       styleOverrides: {
         root: {
           backgroundImage: 'none', // drop MUI's dark elevation overlay
-          backdropFilter: FROST,
-          WebkitBackdropFilter: FROST,
+          backdropFilter: GLASS_BLUR,
+          WebkitBackdropFilter: GLASS_BLUR,
         },
       },
     },

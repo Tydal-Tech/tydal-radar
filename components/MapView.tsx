@@ -11,6 +11,7 @@ import FilterChips, { type Filters } from './FilterChips';
 import { useData } from './DataProvider';
 import { useGeolocation } from '@/lib/useGeolocation';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
+import { glassSx } from '@/lib/glass';
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
@@ -123,13 +124,11 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--safe-bottom) + 84px)',
+          bottom: 'calc(var(--safe-bottom) + 160px)',
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
-          border: '1px solid rgba(255,255,255,0.12)',
-          backdropFilter: 'blur(24px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(180%)',
+          ...glassSx,
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >
@@ -144,7 +143,7 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--safe-bottom) + 16px)',
+          bottom: 'calc(var(--safe-bottom) + 92px)',
           zIndex: 1000,
         }}
       >

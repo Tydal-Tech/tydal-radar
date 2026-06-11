@@ -3,6 +3,7 @@
 import { Paper, InputBase, Box } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import RadarIcon from '@mui/icons-material/Radar';
+import { glassSx } from '@/lib/glass';
 
 export default function SearchBar({
   value,
@@ -13,7 +14,7 @@ export default function SearchBar({
 }) {
   return (
     <Paper
-      elevation={3}
+      elevation={0}
       sx={{
         position: 'absolute',
         top: 'calc(var(--safe-top) + 12px)',
@@ -26,8 +27,7 @@ export default function SearchBar({
         px: 1.5,
         py: 1,
         borderRadius: 999,
-        border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.45)',
+        ...glassSx,
       }}
     >
       <SearchIcon sx={{ color: 'text.secondary' }} />

@@ -97,8 +97,9 @@ export default function ProspectSheet() {
           sx: {
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
-            bgcolor: 'rgba(18,22,38,0.92)',
-            borderTop: '1px solid rgba(255,255,255,0.12)',
+            bgcolor: 'rgba(28,33,52,0.72)',
+            borderTop: '1px solid rgba(255,255,255,0.14)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22), 0 -10px 34px rgba(0,0,0,0.40)',
           },
         },
       }}

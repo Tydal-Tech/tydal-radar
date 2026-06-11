@@ -39,7 +39,7 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
         overflowY: 'auto',
         pt: 'calc(var(--safe-top) + 8px)',
         px: 1.5,
-        pb: 2,
+        pb: 'calc(var(--safe-bottom) + 96px)',
       }}
     >
       <Typography variant="h6" sx={{ px: 1, py: 1.5 }}>

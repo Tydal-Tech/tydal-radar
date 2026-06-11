@@ -19,15 +19,15 @@ function ShellInner() {
   return (
     <Box
       sx={{
+        position: 'relative',
         height: '100dvh',
         width: '100vw',
-        display: 'flex',
-        flexDirection: 'column',
         overflow: 'hidden',
         bgcolor: 'background.default',
       }}
     >
-      <Box sx={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      {/* Content fills the screen; the nav floats over it (full-bleed map). */}
+      <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         {/* Keep the map mounted across tabs so it never re-initializes. */}
         <Box sx={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
           <MapView />

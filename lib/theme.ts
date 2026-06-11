@@ -39,9 +39,25 @@ const theme = createTheme({
     },
     MuiChip: {
       styleOverrides: {
-        root: { fontWeight: 600 },
+        root: {
+          fontWeight: 600,
+          // Subtle tap feedback (scale) + smooth selected-state color change.
+          // Transform/color only — paint, never layout, so no map jank.
+          transition:
+            'transform 150ms cubic-bezier(0.2, 0, 0.2, 1), background-color 180ms ease, border-color 180ms ease, color 180ms ease',
+          '&:active': { transform: 'scale(0.95)' },
+        },
         // Bigger tap targets on default chips; small chips (Follow-ups) untouched.
         sizeMedium: { height: 36, fontSize: '0.9rem' },
+      },
+    },
+    // Brief pressed-state feedback on the floating circular controls.
+    MuiFab: {
+      styleOverrides: {
+        root: {
+          transition: 'transform 150ms cubic-bezier(0.2, 0, 0.2, 1)',
+          '&:active': { transform: 'scale(0.92)' },
+        },
       },
     },
     // Larger, higher-contrast form fields for arm's-length legibility.

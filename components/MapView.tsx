@@ -127,7 +127,7 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--safe-bottom) + 208px)',
+          bottom: 'calc(var(--ui-bottom) + 192px)',
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: 'text.primary',
@@ -145,7 +145,7 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--safe-bottom) + 148px)',
+          bottom: 'calc(var(--ui-bottom) + 132px)',
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
@@ -162,7 +162,7 @@ export default function MapView() {
         onClose={() => setPullMsg(null)}
         message={pullMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 144px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 128px)' }}
       />
       <Snackbar
         open={!!errMsg}
@@ -170,7 +170,7 @@ export default function MapView() {
         onClose={() => setErrMsg(null)}
         message={errMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 144px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 128px)' }}
       />
     </Box>
   );

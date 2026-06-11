@@ -92,6 +92,7 @@ export default function ProspectSheet() {
       onClose={close}
       onOpen={() => {}}
       disableSwipeToOpen
+      transitionDuration={{ enter: 260, exit: 220 }}
       slotProps={{
         paper: {
           sx: {

@@ -78,7 +78,7 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
         overflowY: 'auto',
         pt: 'calc(var(--safe-top) + 8px)',
         px: 1.5,
-        pb: 'calc(var(--safe-bottom) + 96px)',
+        pb: 'calc(var(--ui-bottom) + 80px)',
       }}
     >
       <Typography variant="h6" sx={{ px: 1, py: 1.5 }}>
@@ -168,7 +168,7 @@ export default function FollowUps({ onOpen }: { onOpen: () => void }) {
           if (reason !== 'clickaway') setUndo(null);
         }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        sx={{ mb: 'calc(var(--safe-bottom) + 96px)' }}
+        sx={{ mb: 'calc(var(--ui-bottom) + 80px)' }}
       >
         <SnackbarContent
           message={undo ? `Follow-up cleared — ${undo.name}` : ''}

@@ -25,7 +25,7 @@ export default function BottomNav({
         position: 'absolute',
         left: 16,
         right: 16,
-        bottom: 'calc(var(--safe-bottom) + 16px)',
+        bottom: 'var(--ui-bottom)',
         zIndex: 1200,
         borderRadius: 999,
         overflow: 'hidden',

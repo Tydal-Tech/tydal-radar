@@ -28,4 +28,9 @@ a {
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Floor for the lowest floating control (the nav). The map is full-bleed and
+     keeps Google's required logo/attribution at the very bottom edge; this floor
+     guarantees floating UI sits ~28px clear of that strip even on devices with
+     no home-indicator safe area. Everything else stacks above --ui-bottom. */
+  --ui-bottom: max(28px, calc(env(safe-area-inset-bottom, 0px) + 16px));
 }

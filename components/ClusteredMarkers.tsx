@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
-import { MarkerClusterer, type Renderer } from '@googlemaps/markerclusterer';
+import { MarkerClusterer, SuperClusterAlgorithm, type Renderer } from '@googlemaps/markerclusterer';
 import { STAGE_COLORS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import type { IcpType, ProspectView } from '@/lib/types';
 
@@ -10,8 +10,17 @@ import type { IcpType, ProspectView } from '@/lib/types';
 // cyan ring reads instantly as "one of ours" vs. native map pins at full zoom.
 const BRAND = '#06b6d4';
 
-// Glyph per ICP type, shown in the white center of each pin so the prospect's
-// category reads at a glance (stage is the colored body).
+// Fraction of the viewport span added as a buffer on every edge, so pins are
+// already mounted just outside the screen and slide in as the user pans (no
+// empty-then-populate flash). Larger = smoother panning, more mounted markers.
+const BUFFER = 0.35;
+
+// Clustering: aggressive radius collapses city/mid zoom into a clean handful of
+// clusters; pins only break out at street level (zoom > maxZoom).
+const CLUSTER_RADIUS = 140;
+const CLUSTER_MAX_ZOOM = 16; // clusters at <=16, individual ICP pins at >=17
+
+// Glyph per ICP type, shown in the white center of each pin.
 const ICP_EMOJI: Record<IcpType, string> = {
   daycare: '🧸',
   dental: '🦷',
@@ -19,12 +28,11 @@ const ICP_EMOJI: Record<IcpType, string> = {
   office: '🏢',
 };
 
-// An iOS-style prospect marker: stage-colored body, ICP glyph in a white center,
-// framed by a constant cyan brand ring (with a thin dark separator so the ring
-// stays visible even when the body itself is cyan/follow_up) and a white halo for
-// contrast on the dark map. A hidden ring child pulses only while selected.
-// The 0×0 root sits at the coordinate (AdvancedMarker anchors content
-// bottom-center); children are absolutely centered on it.
+// A compact iOS-style prospect marker: stage-colored body, ICP glyph in a white
+// center, framed by a thin constant cyan brand ring (with a 1px dark separator so
+// the ring still reads on a cyan/follow_up body) and a white halo for contrast on
+// the dark map. The 0×0 root sits at the coordinate (AdvancedMarker anchors
+// content bottom-center); children are absolutely centered on it.
 function buildPin(v: ProspectView): HTMLElement {
   const root = document.createElement('div');
   root.style.position = 'relative';
@@ -35,42 +43,43 @@ function buildPin(v: ProspectView): HTMLElement {
   pulse.className = 'tydal-pulse-ring';
   pulse.style.cssText = [
     'position:absolute',
-    'left:-19px',
-    'bottom:-19px',
-    'width:38px',
-    'height:38px',
+    'left:-14px',
+    'bottom:-14px',
+    'width:28px',
+    'height:28px',
     'border-radius:50%',
-    `border:2px solid ${BRAND}`,
+    `border:1.5px solid ${BRAND}`,
     'box-sizing:border-box',
     'pointer-events:none',
   ].join(';');
 
   const circle = document.createElement('div');
+  circle.className = 'tydal-pin-body';
   circle.style.cssText = [
     'position:absolute',
-    'left:-19px',
-    'bottom:-19px',
-    'width:38px',
-    'height:38px',
+    'left:-14px',
+    'bottom:-14px',
+    'width:28px',
+    'height:28px',
     'border-radius:50%',
     `background:${STAGE_COLORS[v.stage]}`,
     'display:flex',
     'align-items:center',
     'justify-content:center',
-    // body · thin dark gap · cyan brand ring · white halo · soft depth shadow
-    `box-shadow:0 0 0 1.5px #0b0f1a, 0 0 0 4px ${BRAND}, 0 0 0 6px rgba(255,255,255,0.65), 0 1px 6px rgba(0,0,0,0.55)`,
+    // body · 1px dark gap · thin cyan brand ring · white halo · soft depth shadow
+    `box-shadow:0 0 0 1px #0b0f1a, 0 0 0 2.5px ${BRAND}, 0 0 0 3.5px rgba(255,255,255,0.6), 0 1px 5px rgba(0,0,0,0.5)`,
   ].join(';');
 
   const inner = document.createElement('div');
   inner.style.cssText = [
-    'width:26px',
-    'height:26px',
+    'width:20px',
+    'height:20px',
     'border-radius:50%',
     'background:#fff',
     'display:flex',
     'align-items:center',
     'justify-content:center',
-    'font-size:16px',
+    'font-size:13px',
     'line-height:1',
   ].join(';');
   inner.textContent = ICP_EMOJI[v.type as IcpType] ?? '📍';
@@ -137,12 +146,11 @@ function buildCluster(count: number, stage: Stage): HTMLElement {
   return root;
 }
 
-// Renders the prospect pins imperatively and groups them with the official
-// MarkerClusterer: pins cluster when zoomed out, split apart on zoom-in, and
-// clicking a cluster zooms in. Building markers imperatively (instead of one
-// React <AdvancedMarker> per prospect) keeps panning smooth at 200+ pins —
-// markers are only rebuilt when the visible set (`views`) actually changes,
-// never on pan/zoom or on selection.
+// Renders the prospect pins and groups them with the official MarkerClusterer.
+// Viewport culling: only markers inside the current viewport (plus a buffer) are
+// ever mounted; the set is recomputed on the map 'idle' event (incrementally
+// added/removed), so a zoomed-in pan touches ~on-screen markers, not all 218.
+// Clustering runs over that in-viewport set, so culling + clustering cooperate.
 export default function ClusteredMarkers({
   views,
   selectedId,
@@ -155,42 +163,91 @@ export default function ClusteredMarkers({
   const map = useMap();
   const markerLib = useMapsLibrary('marker');
 
-  // Pin root element per prospect, so selection can toggle the pulse class
-  // without rebuilding markers. selectedRef lets a fresh marker set (after a
-  // `views` change) restore the pulse on the currently-selected pin.
-  const pinRoots = useRef<Map<string, HTMLElement>>(new Map());
-  const selectedRef = useRef<string | null>(selectedId);
-  selectedRef.current = selectedId;
+  const clustererRef = useRef<MarkerClusterer | null>(null);
+  // Currently-mounted markers (in viewport + buffer), keyed by place_id.
+  const mounted = useRef<Map<string, { marker: google.maps.marker.AdvancedMarkerElement; root: HTMLElement }>>(
+    new Map(),
+  );
+  const stageByMarker = useRef<Map<google.maps.marker.AdvancedMarkerElement, Stage>>(new Map());
 
+  // Latest props read by the idle handler without forcing rebuilds.
+  const viewsRef = useRef(views);
+  viewsRef.current = views;
+  const selectedRef = useRef(selectedId);
+  selectedRef.current = selectedId;
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  // Reconcile mounted markers to the current viewport+buffer. Newly-added markers
+  // get the one-shot entrance animation, unless their id is in `skipEnter` (used
+  // on a data/filter change so already-shown pins update silently).
+  const reconcile = useCallback(
+    (skipEnter?: Set<string>) => {
+      const m = map;
+      const clusterer = clustererRef.current;
+      if (!m || !markerLib || !clusterer) return;
+      const bounds = m.getBounds();
+      if (!bounds) return;
+      const { AdvancedMarkerElement } = markerLib;
+
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      const latPad = (ne.lat() - sw.lat()) * BUFFER;
+      const lngPad = (ne.lng() - sw.lng()) * BUFFER;
+      const minLat = sw.lat() - latPad;
+      const maxLat = ne.lat() + latPad;
+      const minLng = sw.lng() - lngPad;
+      const maxLng = ne.lng() + lngPad;
+
+      const current = mounted.current;
+      const visible = new Set<string>();
+      const toAdd: google.maps.marker.AdvancedMarkerElement[] = [];
+
+      for (const v of viewsRef.current) {
+        if (v.lat < minLat || v.lat > maxLat || v.lng < minLng || v.lng > maxLng) continue;
+        visible.add(v.place_id);
+        if (current.has(v.place_id)) continue;
+
+        const root = buildPin(v);
+        if (!skipEnter?.has(v.place_id)) root.classList.add('tydal-pin--enter');
+        if (v.place_id === selectedRef.current) root.classList.add('tydal-pin--selected');
+        const marker = new AdvancedMarkerElement({
+          position: { lat: v.lat, lng: v.lng },
+          title: v.name,
+          content: root,
+        });
+        marker.addListener('click', () => onSelectRef.current(v.place_id));
+        current.set(v.place_id, { marker, root });
+        stageByMarker.current.set(marker, v.stage);
+        toAdd.push(marker);
+      }
+
+      const toRemove: google.maps.marker.AdvancedMarkerElement[] = [];
+      for (const [id, { marker }] of current) {
+        if (visible.has(id)) continue;
+        toRemove.push(marker);
+        stageByMarker.current.delete(marker);
+        current.delete(id);
+      }
+
+      if (toRemove.length) clusterer.removeMarkers(toRemove, true);
+      if (toAdd.length) clusterer.addMarkers(toAdd, true);
+      if (toRemove.length || toAdd.length) clusterer.render();
+    },
+    [map, markerLib],
+  );
+
+  // Create the clusterer once and recompute the visible set on map idle (idle is
+  // the debounce — it fires once after movement settles, never per pan frame).
   useEffect(() => {
     if (!map || !markerLib) return;
     const { AdvancedMarkerElement } = markerLib;
 
-    // Remember each marker's stage so the cluster renderer can color clusters.
-    const stageByMarker = new Map<google.maps.marker.AdvancedMarkerElement, Stage>();
-    const roots = new Map<string, HTMLElement>();
-
-    const markers = views.map((v) => {
-      const root = buildPin(v);
-      if (v.place_id === selectedRef.current) root.classList.add('tydal-pin--selected');
-      roots.set(v.place_id, root);
-
-      const marker = new AdvancedMarkerElement({
-        position: { lat: v.lat, lng: v.lng },
-        title: v.name,
-        content: root,
-      });
-      stageByMarker.set(marker, v.stage);
-      marker.addListener('click', () => onSelect(v.place_id));
-      return marker;
-    });
-    pinRoots.current = roots;
-
     const renderer: Renderer = {
       render: (cluster) => {
         const stages: Stage[] = [];
-        for (const m of cluster.markers) {
-          const s = stageByMarker.get(m as google.maps.marker.AdvancedMarkerElement);
+        for (const mk of cluster.markers) {
+          const s = stageByMarker.current.get(mk as google.maps.marker.AdvancedMarkerElement);
           if (s) stages.push(s);
         }
         const stage = stages.length ? clusterStage(stages) : 'not_knocked';
@@ -202,22 +259,41 @@ export default function ClusteredMarkers({
       },
     };
 
-    const clusterer = new MarkerClusterer({ map, markers, renderer });
+    const clusterer = new MarkerClusterer({
+      map,
+      renderer,
+      algorithm: new SuperClusterAlgorithm({ radius: CLUSTER_RADIUS, maxZoom: CLUSTER_MAX_ZOOM }),
+    });
+    clustererRef.current = clusterer;
+
+    const idle = map.addListener('idle', () => reconcile());
 
     return () => {
-      clusterer.clearMarkers();
+      idle.remove();
+      clusterer.clearMarkers(true);
       clusterer.setMap(null);
-      markers.forEach((m) => {
-        m.map = null;
-      });
-      pinRoots.current = new Map();
+      mounted.current.clear();
+      stageByMarker.current = new Map();
+      clustererRef.current = null;
     };
-  }, [map, markerLib, views, onSelect]);
+  }, [map, markerLib, reconcile]);
 
-  // Toggle the pulse on the selected pin only — no marker rebuild, so this is
-  // cheap and never touches the other pins.
+  // On a data/filter change, rebuild the visible set with fresh data (so stage
+  // colors update). Previously-shown pins are rebuilt silently; genuinely new
+  // ones animate in.
   useEffect(() => {
-    pinRoots.current.forEach((root, id) => {
+    const clusterer = clustererRef.current;
+    if (!clusterer) return;
+    const prev = new Set(mounted.current.keys());
+    clusterer.clearMarkers(true);
+    mounted.current.clear();
+    stageByMarker.current = new Map();
+    reconcile(prev);
+  }, [views, reconcile]);
+
+  // Toggle the pulse on the selected pin only — no marker rebuild.
+  useEffect(() => {
+    mounted.current.forEach(({ root }, id) => {
       root.classList.toggle('tydal-pin--selected', id === selectedId);
     });
   }, [selectedId]);

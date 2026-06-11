@@ -49,6 +49,28 @@ body {
   }
 }
 
+/* One-shot settle-in for pins that newly entered the viewport, played only when
+   they mount on map idle (never during an active pan/zoom). Transform + opacity
+   only. */
+@keyframes tydal-pin-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.55);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.tydal-pin--enter .tydal-pin-body {
+  animation: tydal-pin-enter 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tydal-pin--enter .tydal-pin-body {
+    animation: none;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

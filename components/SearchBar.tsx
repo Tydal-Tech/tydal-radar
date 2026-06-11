@@ -16,8 +16,9 @@ export default function SearchBar({
     <Paper
       elevation={0}
       sx={{
+        // Bottom-anchored, floating just above the nav for thumb reach.
         position: 'absolute',
-        top: 'calc(var(--safe-top) + 12px)',
+        bottom: 'calc(var(--safe-bottom) + 84px)',
         left: 12,
         right: 12,
         zIndex: 1000,

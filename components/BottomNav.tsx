@@ -25,7 +25,7 @@ export default function BottomNav({
         position: 'absolute',
         left: 16,
         right: 16,
-        bottom: 'calc(var(--safe-bottom) + 12px)',
+        bottom: 'calc(var(--safe-bottom) + 16px)',
         zIndex: 1200,
         borderRadius: 999,
         overflow: 'hidden',
@@ -36,7 +36,7 @@ export default function BottomNav({
         value={value}
         onChange={(_, v: Tab) => onChange(v)}
         showLabels
-        sx={{ bgcolor: 'transparent', height: 64 }}
+        sx={{ bgcolor: 'transparent', height: 56 }}
       >
         <BottomNavigationAction label="Map" value="map" icon={<MapOutlinedIcon />} />
         <BottomNavigationAction

@@ -117,6 +117,27 @@ export default function MapView() {
         />
       )}
 
+      {/* Right-edge stack of equal-size circular glass controls (Apple pattern):
+          Refresh on top, My-location below. */}
+      <Fab
+        aria-label="Refresh prospects"
+        size="medium"
+        onClick={refresh}
+        disabled={refreshing}
+        sx={{
+          position: 'absolute',
+          right: 16,
+          bottom: 'calc(var(--safe-bottom) + 208px)',
+          zIndex: 1000,
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          ...glassSx,
+          '&:hover': { bgcolor: 'background.paper' },
+        }}
+      >
+        {refreshing ? <CircularProgress size={22} color="inherit" /> : <RefreshIcon />}
+      </Fab>
+
       <Fab
         aria-label="My location"
         size="medium"
@@ -124,7 +145,7 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--safe-bottom) + 160px)',
+          bottom: 'calc(var(--safe-bottom) + 148px)',
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
@@ -135,33 +156,13 @@ export default function MapView() {
         <MyLocationIcon />
       </Fab>
 
-      <Fab
-        color="primary"
-        variant="extended"
-        onClick={refresh}
-        disabled={refreshing}
-        sx={{
-          position: 'absolute',
-          right: 16,
-          bottom: 'calc(var(--safe-bottom) + 92px)',
-          zIndex: 1000,
-        }}
-      >
-        {refreshing ? (
-          <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
-        ) : (
-          <RefreshIcon sx={{ mr: 1 }} />
-        )}
-        {refreshing ? 'Pulling…' : 'Refresh prospects'}
-      </Fab>
-
       <Snackbar
         open={!!pullMsg}
         autoHideDuration={4000}
         onClose={() => setPullMsg(null)}
         message={pullMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 96px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 144px)' }}
       />
       <Snackbar
         open={!!errMsg}
@@ -169,7 +170,7 @@ export default function MapView() {
         onClose={() => setErrMsg(null)}
         message={errMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 96px)' }}
+        sx={{ pointerEvents: 'none', mb: 'calc(var(--safe-bottom) + 144px)' }}
       />
     </Box>
   );

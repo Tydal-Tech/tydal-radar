@@ -85,7 +85,7 @@ export default function FilterChips({
       spacing={1}
       sx={{
         position: 'absolute',
-        top: 'calc(var(--safe-top) + 70px)',
+        top: 'calc(var(--safe-top) + 12px)',
         left: 0,
         right: 0,
         px: 1.5,

@@ -137,16 +137,13 @@ export default function ProspectSheet() {
     return () => window.removeEventListener('keydown', onKey);
   }, [view]);
 
-  // Grabber drag: lock content scroll, then track the finger between peek and full.
-  const onGrabStart = () => {
-    setAtFull(false);
-    if (contentRef.current) contentRef.current.scrollTop = 0;
-  };
-  const onGrabPan = (_: PointerEvent, info: PanInfo) => {
+  // Drag (the grabber, or anywhere on the card when not at Full): the height
+  // tracks the finger, then snaps to a detent on release.
+  const resizeBy = (info: PanInfo) => {
     const d = detentsRef.current;
     height.set(clamp(height.get() - info.delta.y, d[0], d[d.length - 1]));
   };
-  const onGrabPanEnd = (_: PointerEvent, info: PanInfo) => {
+  const snapEnd = (info: PanInfo) => {
     const d = detentsRef.current;
     const h = height.get();
     const vy = info.velocity.y;
@@ -164,6 +161,11 @@ export default function ProspectSheet() {
     });
     setAtFull(target === d[d.length - 1]);
     if (target !== d[d.length - 1] && contentRef.current) contentRef.current.scrollTop = 0;
+  };
+  // Grabbing the handle always resizes — lock scroll first (even from Full).
+  const lockScroll = () => {
+    setAtFull(false);
+    if (contentRef.current) contentRef.current.scrollTop = 0;
   };
 
   // Reset the editable draft to a blank prospect. Persisted only when the user taps Save.
@@ -238,11 +240,11 @@ export default function ProspectSheet() {
               flexDirection: 'column',
             }}
           >
-            {/* grabber = drag handle */}
+            {/* grabber = drag handle (always resizes, even from Full) */}
             <motion.div
-              onPanStart={onGrabStart}
-              onPan={onGrabPan}
-              onPanEnd={onGrabPanEnd}
+              onPanStart={lockScroll}
+              onPan={(_, info) => resizeBy(info)}
+              onPanEnd={(_, info) => snapEnd(info)}
               style={{
                 flexShrink: 0,
                 display: 'flex',
@@ -256,16 +258,25 @@ export default function ProspectSheet() {
               <Box sx={{ width: 38, height: 5, borderRadius: 999, bgcolor: 'rgba(255,255,255,0.4)' }} />
             </motion.div>
 
-            <Box
+            <motion.div
               ref={contentRef}
-              sx={{
+              onPan={(_, info) => {
+                if (!atFull) resizeBy(info);
+              }}
+              onPanEnd={(_, info) => {
+                if (!atFull) snapEnd(info);
+              }}
+              style={{
                 position: 'relative',
                 flex: 1,
                 minHeight: 0,
                 overflowY: atFull ? 'auto' : 'hidden',
                 overscrollBehavior: 'contain',
-                px: 2.5,
-                pb: 'calc(var(--safe-bottom) + 20px)',
+                paddingLeft: 20,
+                paddingRight: 20,
+                paddingBottom: 'calc(var(--safe-bottom) + 20px)',
+                // Peek/Half: capture drags to resize. Full: let native scroll run.
+                touchAction: atFull ? 'pan-y' : 'none',
               }}
             >
               {/* ---- PEEK: identity + stage + Save ---- */}
@@ -490,7 +501,7 @@ export default function ProspectSheet() {
               >
                 {confirmClear ? 'Tap again to clear all' : 'Clear all'}
               </Button>
-            </Box>
+            </motion.div>
           </motion.div>
         </Box>
       )}

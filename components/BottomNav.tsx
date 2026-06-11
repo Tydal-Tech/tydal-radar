@@ -35,7 +35,7 @@ export default function BottomNav({
         zIndex: 1200,
         borderRadius: 0,
         overflow: 'hidden',
-        backgroundColor: '#161719',
+        backgroundColor: '#141414',
         borderTop: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 -4px 16px rgba(0,0,0,0.45)',
         paddingBottom: 'var(--safe-bottom)',

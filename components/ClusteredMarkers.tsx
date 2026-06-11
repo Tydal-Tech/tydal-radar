@@ -120,7 +120,7 @@ function buildPin(v: ProspectView): HTMLElement {
       `height:${badgeSize}px`,
       'border-radius:50%',
       `background:${u === 'red' ? '#d93025' : '#f9ab00'}`,
-      'border:1.5px solid #0b0f1a',
+      'border:1.5px solid #000000',
       'box-sizing:border-box',
       'box-shadow:0 1px 3px rgba(0,0,0,0.5)',
       'pointer-events:none',

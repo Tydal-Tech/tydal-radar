@@ -12,7 +12,7 @@ body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  background: #0b0f1a;
+  background: #000000;
 }
 
 * {
@@ -91,7 +91,7 @@ a {
    panel with a top hairline and a drop shadow — no blur, no gradient.
    framer-motion drives only the transform. */
 .tydal-sheet {
-  background-color: #161718;
+  background-color: #141414;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.5);
 }

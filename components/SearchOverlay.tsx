@@ -3,28 +3,29 @@
 import { useState } from 'react';
 import {
   Box,
-  Paper,
   InputBase,
   IconButton,
+  Button,
   Typography,
   Card,
   CardActionArea,
   Chip,
   Stack,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { motion } from 'framer-motion';
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import { useData } from './DataProvider';
 import { ICP } from '@/lib/icp';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
-import { glassSx, glassCardSx } from '@/lib/glass';
+import { glassCardSx } from '@/lib/glass';
 import type { IcpType } from '@/lib/types';
 
-// Full-screen search (the social-media pattern): a dark search field + a results
-// list, reached from the Search nav tab instead of a standing bar. Same
-// name/address match the old bar used; tapping a result selects the prospect
-// and returns to the map (where the sheet opens and the map recenters).
+// Search as a bottom sheet OVER the map (Apple Maps pattern): a search field at
+// the top + a scrolling results list, sliding up from the bottom (above the nav
+// bar) while the map stays visible behind it and the map controls lift up. Same
+// name/address match as before; tapping a result selects the prospect and
+// returns to the map (where the prospect sheet opens and the map recenters).
 export default function SearchOverlay({
   onClose,
   onScroll,
@@ -49,98 +50,123 @@ export default function SearchOverlay({
   }
 
   return (
-    <Box
-      onScroll={onScroll}
-      sx={{
+    <motion.div
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+      style={{
         position: 'absolute',
-        inset: 0,
-        bgcolor: 'background.default',
-        overflowY: 'auto',
-        pt: 'calc(var(--safe-top) + 8px)',
-        px: 1.5,
-        pb: 'calc(var(--ui-bottom) + 80px)',
+        left: 0,
+        right: 0,
+        bottom: 'var(--nav-total)',
+        height: 'calc(var(--app-height) * 0.55)',
+        background: '#1a1a1a',
+        borderTopLeftRadius: 18,
+        borderTopRightRadius: 18,
+        boxShadow: '0 -8px 30px rgba(0,0,0,0.55)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        zIndex: 1100,
       }}
     >
-      <Paper
-        elevation={0}
+      {/* Grabber */}
+      <Box
         sx={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 0.5,
-          pl: 0.5,
-          pr: 1,
-          py: 0.5,
-          borderRadius: 999,
-          ...glassSx,
+          alignSelf: 'center',
+          width: 36,
+          height: 5,
+          borderRadius: 3,
+          bgcolor: 'rgba(255,255,255,0.22)',
+          mt: 1,
+          mb: 1,
+          flexShrink: 0,
         }}
-      >
-        <IconButton aria-label="Close search" onClick={onClose}>
-          <ArrowBackIcon />
-        </IconButton>
-        <SearchIcon sx={{ color: 'text.secondary' }} />
-        <InputBase
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search prospects"
-          sx={{ flex: 1, fontSize: 16, ml: 0.5 }}
-          inputProps={{ 'aria-label': 'Search prospects' }}
-        />
-        {query && (
-          <IconButton size="small" aria-label="Clear" onClick={() => setQuery('')}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Paper>
+      />
 
-      {!q ? (
-        <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 8, px: 3 }}>
-          <SearchIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-          <Typography sx={{ mt: 1 }}>Search prospects by name or address</Typography>
+      {/* Search field + Cancel */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, pb: 1, flexShrink: 0 }}>
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+            px: 1,
+            py: 0.5,
+            borderRadius: 2.5,
+            bgcolor: 'rgba(255,255,255,0.08)',
+          }}
+        >
+          <SearchIcon sx={{ color: 'text.secondary' }} />
+          <InputBase
+            autoFocus
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search prospects"
+            sx={{ flex: 1, fontSize: 16, ml: 0.5 }}
+            inputProps={{ 'aria-label': 'Search prospects' }}
+          />
+          {query && (
+            <IconButton size="small" aria-label="Clear" onClick={() => setQuery('')}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          )}
         </Box>
-      ) : results.length === 0 ? (
-        <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 8, px: 3 }}>
-          <Typography>No matches for “{query.trim()}”</Typography>
-        </Box>
-      ) : (
-        <Stack spacing={1.25} sx={{ mt: 1.5 }}>
-          {results.map((v) => (
-            <Card key={v.place_id} sx={glassCardSx}>
-              <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
-                <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 600 }} noWrap>
-                      {v.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" noWrap>
-                      {ICP[v.type as IcpType].label} · {v.neighborhood}
-                    </Typography>
-                    {v.address && (
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {v.address}
+        <Button onClick={onClose} sx={{ color: 'primary.main', minWidth: 0, px: 1 }}>
+          Cancel
+        </Button>
+      </Box>
+
+      {/* Results */}
+      <Box onScroll={onScroll} sx={{ flex: 1, overflowY: 'auto', px: 1.5, pb: 2 }}>
+        {!q ? (
+          <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 4, px: 3 }}>
+            <SearchIcon sx={{ fontSize: 44, opacity: 0.5 }} />
+            <Typography sx={{ mt: 1 }}>Search prospects by name or address</Typography>
+          </Box>
+        ) : results.length === 0 ? (
+          <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 4, px: 3 }}>
+            <Typography>No matches for “{query.trim()}”</Typography>
+          </Box>
+        ) : (
+          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
+            {results.map((v) => (
+              <Card key={v.place_id} sx={glassCardSx}>
+                <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
+                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                        {v.name}
                       </Typography>
-                    )}
-                  </Box>
-                  <Chip
-                    size="small"
-                    label={STAGE_LABELS[v.stage]}
-                    sx={{
-                      alignSelf: 'flex-start',
-                      bgcolor: STAGE_COLORS[v.stage],
-                      color: STAGE_ON_COLOR[v.stage],
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  />
-                </Stack>
-              </CardActionArea>
-            </Card>
-          ))}
-        </Stack>
-      )}
-    </Box>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {ICP[v.type as IcpType].label} · {v.neighborhood}
+                      </Typography>
+                      {v.address && (
+                        <Typography variant="body2" color="text.secondary" noWrap>
+                          {v.address}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={STAGE_LABELS[v.stage]}
+                      sx={{
+                        alignSelf: 'flex-start',
+                        bgcolor: STAGE_COLORS[v.stage],
+                        color: STAGE_ON_COLOR[v.stage],
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    />
+                  </Stack>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Stack>
+        )}
+      </Box>
+    </motion.div>
   );
 }

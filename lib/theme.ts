@@ -11,8 +11,9 @@ const theme = createTheme({
     mode: 'dark',
     primary: { main: '#2563eb' }, // blue — primary actions
     secondary: { main: '#06b6d4' }, // cyan — accents only
-    // Solid near-black surfaces: opaque, flat, high-contrast — no blur, no tint.
-    background: { default: '#0b0f1a', paper: '#1c1d21' },
+    // Solid black + neutral near-black surfaces: opaque, flat, high-contrast —
+    // no blur, no navy tint.
+    background: { default: '#000000', paper: '#1a1a1a' },
     text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.78)' },
   },
   shape: { borderRadius: 12 },

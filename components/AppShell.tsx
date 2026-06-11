@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box } from '@mui/material';
+import { AnimatePresence } from 'framer-motion';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import DataProvider, { useData } from './DataProvider';
 import BottomNav, { type Tab } from './BottomNav';
@@ -43,9 +44,10 @@ function ShellInner() {
     >
       {/* Content fills the screen; the nav floats over it (full-bleed map). */}
       <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {/* Keep the map mounted across tabs so it never re-initializes. Ends at
-            the bottom bar's top (--nav-total) so Google's attribution sits just
-            above the flush bar instead of being covered by it. */}
+        {/* Keep the map mounted across tabs so it never re-initializes. Visible
+            for Map AND Search — search opens as a sheet OVER the map (Apple Maps
+            pattern). Ends at the bottom bar's top (--nav-total) so Google's
+            attribution stays visible above the flush bar. */}
         <Box
           sx={{
             position: 'absolute',
@@ -53,12 +55,16 @@ function ShellInner() {
             left: 0,
             right: 0,
             bottom: 'var(--nav-total)',
-            display: tab === 'map' ? 'block' : 'none',
+            display: tab === 'map' || tab === 'search' ? 'block' : 'none',
           }}
         >
-          <MapView />
+          <MapView searchOpen={tab === 'search'} />
         </Box>
-        {tab === 'search' && <SearchOverlay onClose={() => setTab('map')} onScroll={onListScroll} />}
+        <AnimatePresence>
+          {tab === 'search' && (
+            <SearchOverlay key="search" onClose={() => setTab('map')} onScroll={onListScroll} />
+          )}
+        </AnimatePresence>
         {tab === 'followups' && (
           <FollowUps onOpen={() => setTab('map')} onScroll={onListScroll} />
         )}

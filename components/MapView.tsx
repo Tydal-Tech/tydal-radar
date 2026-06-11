@@ -18,7 +18,7 @@ import { glassSx } from '@/lib/glass';
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
-export default function MapView() {
+export default function MapView({ searchOpen = false }: { searchOpen?: boolean }) {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
     useData();
   const [filters, setFilters] = useState<Filters>({
@@ -126,7 +126,7 @@ export default function MapView() {
               }}
             >
               <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                <path d="M5 0.5 L9 9.5 L5 7.1 L1 9.5 Z" fill="#1c1d21" />
+                <path d="M5 0.5 L9 9.5 L5 7.1 L1 9.5 Z" fill="#1a1a1a" />
               </svg>
             </Box>
           </AdvancedMarker>
@@ -173,7 +173,19 @@ export default function MapView() {
 
       {/* Right-edge stack of equal-size solid near-black circular controls
           (Uber pattern), just above the bottom bar: Refresh, Filter, Heatmap,
-          My-location (top → bottom). */}
+          My-location (top → bottom). The wrapper lifts the whole stack up above
+          the search sheet when it opens (Apple Maps pattern); pointer-events
+          none on it so the map still pans between buttons (each Fab re-enables
+          its own). */}
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          transform: searchOpen ? 'translateY(calc(var(--app-height) * -0.55))' : 'none',
+          transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
+      >
       <Fab
         aria-label="Refresh prospects"
         size="medium"
@@ -187,6 +199,7 @@ export default function MapView() {
           bgcolor: 'background.paper',
           color: 'text.primary',
           ...glassSx,
+          pointerEvents: 'auto',
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >
@@ -205,6 +218,7 @@ export default function MapView() {
           bgcolor: 'background.paper',
           color: anyFilter ? 'secondary.main' : 'text.primary',
           ...glassSx,
+          pointerEvents: 'auto',
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >
@@ -223,6 +237,7 @@ export default function MapView() {
           bgcolor: 'background.paper',
           color: heatmapOn ? '#ff7a00' : 'text.secondary',
           ...glassSx,
+          pointerEvents: 'auto',
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >
@@ -241,11 +256,13 @@ export default function MapView() {
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
           ...glassSx,
+          pointerEvents: 'auto',
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >
         <MyLocationIcon />
       </Fab>
+      </Box>
 
       <Popover
         open={!!filterAnchor}

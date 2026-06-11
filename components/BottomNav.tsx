@@ -54,7 +54,7 @@ export default function BottomNav({
             color: 'rgba(255,255,255,0.6)',
             transition: `color 250ms ease, transform ${PRESS_MS}ms ${PRESS_EASE}`,
             '&:active': { transform: 'scale(0.94)' },
-            '&.Mui-selected': { color: '#2563eb' },
+            '&.Mui-selected': { color: '#5870E6' },
           },
           '& .MuiBottomNavigationAction-label': {
             transition: 'opacity 200ms ease, max-height 240ms ease',

@@ -254,7 +254,7 @@ export default function MapView({ searchOpen = false }: { searchOpen?: boolean }
           bottom: 24,
           zIndex: 1000,
           bgcolor: 'background.paper',
-          color: geo.position ? '#4285f4' : 'text.secondary',
+          color: geo.position ? '#5870E6' : 'text.secondary',
           ...glassSx,
           pointerEvents: 'auto',
           '&:hover': { bgcolor: 'background.paper' },

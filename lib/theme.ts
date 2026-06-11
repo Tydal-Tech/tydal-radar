@@ -9,12 +9,12 @@ import { PRESS_EASE, PRESS_MS } from './motion';
 const theme = createTheme({
   palette: {
     mode: 'dark',
-    primary: { main: '#2563eb' }, // blue — primary actions
+    primary: { main: '#5870E6' }, // accent blue
     secondary: { main: '#06b6d4' }, // cyan — accents only
     // Solid black + neutral near-black surfaces: opaque, flat, high-contrast —
     // no blur, no navy tint.
-    background: { default: '#000000', paper: '#1a1a1a' },
-    text: { primary: '#f5f7fa', secondary: 'rgba(255,255,255,0.78)' },
+    background: { default: '#0F0F0F', paper: '#1a1a1a' },
+    text: { primary: '#FFFFFF', secondary: '#A6A6A6' },
   },
   shape: { borderRadius: 12 },
   typography: {

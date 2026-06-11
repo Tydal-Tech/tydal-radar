@@ -12,7 +12,7 @@ body {
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  background: #000000;
+  background: #0F0F0F;
 }
 
 * {

@@ -107,6 +107,10 @@ a {
   --app-height: 100dvh;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Bottom bar: content height + the home-indicator safe area. The map ends at
+     the bar's top (--nav-total) so Google's attribution stays visible above it. */
+  --nav-h: 60px;
+  --nav-total: calc(var(--nav-h) + var(--safe-bottom));
   /* Floor for the lowest floating control (the nav). The map is full-bleed and
      keeps Google's required logo/attribution at the very bottom edge; this floor
      guarantees floating UI sits ~28px clear of that strip even on devices with

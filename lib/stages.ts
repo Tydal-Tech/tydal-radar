@@ -28,7 +28,9 @@ export const STAGE_LABELS: Record<Stage, string> = {
 };
 
 export const STAGE_COLORS: Record<Stage, string> = {
-  not_knocked: '#9aa0a6',
+  // Dark slate (was a light grey) so the white pin glyph stays legible and the
+  // most-common stage reads as a quiet backdrop while active stages pop.
+  not_knocked: '#5b6470',
   knocked: '#f9ab00',
   talked: '#1a73e8',
   follow_up: '#06b6d4',

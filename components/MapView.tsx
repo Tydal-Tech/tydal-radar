@@ -6,6 +6,7 @@ import { Box, Fab, Popover, Snackbar, CircularProgress, LinearProgress } from '@
 import RefreshIcon from '@mui/icons-material/Refresh';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import TuneIcon from '@mui/icons-material/Tune';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import ClusteredMarkers from './ClusteredMarkers';
 import DemandHeatmap from './DemandHeatmap';
 import FilterPanel, { type Filters } from './FilterPanel';
@@ -27,6 +28,7 @@ export default function MapView() {
     attention: false,
   });
   const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
+  const [heatmapOn, setHeatmapOn] = useState(true);
   const [pullMsg, setPullMsg] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [pendingRecenter, setPendingRecenter] = useState(false);
@@ -103,7 +105,7 @@ export default function MapView() {
         style={{ width: '100%', height: '100%' }}
       >
         {/* Demand-style glow under the pins: where prospects are concentrated. */}
-        <DemandHeatmap views={filtered} />
+        <DemandHeatmap views={filtered} enabled={heatmapOn} />
         <ClusteredMarkers views={filtered} selectedId={selectedId} onSelect={setSelectedId} />
         {geo.position && (
           <AdvancedMarker position={geo.position} title="Your location" zIndex={9999}>
@@ -160,7 +162,8 @@ export default function MapView() {
       )}
 
       {/* Right-edge stack of equal-size solid near-black circular controls
-          (Uber pattern): Refresh on top, Filter in the middle, My-location below. */}
+          (Uber pattern), just above the bottom bar: Refresh, Filter, Heatmap,
+          My-location (top → bottom). */}
       <Fab
         aria-label="Refresh prospects"
         size="medium"
@@ -169,7 +172,7 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--ui-bottom) + 192px)',
+          bottom: 204,
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: 'text.primary',
@@ -187,7 +190,7 @@ export default function MapView() {
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--ui-bottom) + 132px)',
+          bottom: 144,
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: anyFilter ? 'secondary.main' : 'text.primary',
@@ -199,13 +202,31 @@ export default function MapView() {
       </Fab>
 
       <Fab
+        aria-label={heatmapOn ? 'Hide demand heatmap' : 'Show demand heatmap'}
+        size="medium"
+        onClick={() => setHeatmapOn((on) => !on)}
+        sx={{
+          position: 'absolute',
+          right: 16,
+          bottom: 84,
+          zIndex: 1000,
+          bgcolor: 'background.paper',
+          color: heatmapOn ? '#ff7a00' : 'text.secondary',
+          ...glassSx,
+          '&:hover': { bgcolor: 'background.paper' },
+        }}
+      >
+        <LocalFireDepartmentIcon />
+      </Fab>
+
+      <Fab
         aria-label="My location"
         size="medium"
         onClick={handleRecenter}
         sx={{
           position: 'absolute',
           right: 16,
-          bottom: 'calc(var(--ui-bottom) + 72px)',
+          bottom: 24,
           zIndex: 1000,
           bgcolor: 'background.paper',
           color: geo.position ? '#4285f4' : 'text.secondary',
@@ -237,7 +258,7 @@ export default function MapView() {
         onClose={() => setPullMsg(null)}
         message={pullMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 72px)' }}
+        sx={{ pointerEvents: 'none', mb: '32px' }}
       />
       <Snackbar
         open={!!errMsg}
@@ -245,7 +266,7 @@ export default function MapView() {
         onClose={() => setErrMsg(null)}
         message={errMsg ?? ''}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        sx={{ pointerEvents: 'none', mb: 'calc(var(--ui-bottom) + 72px)' }}
+        sx={{ pointerEvents: 'none', mb: '32px' }}
       />
     </Box>
   );

@@ -43,8 +43,19 @@ function ShellInner() {
     >
       {/* Content fills the screen; the nav floats over it (full-bleed map). */}
       <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {/* Keep the map mounted across tabs so it never re-initializes. */}
-        <Box sx={{ position: 'absolute', inset: 0, display: tab === 'map' ? 'block' : 'none' }}>
+        {/* Keep the map mounted across tabs so it never re-initializes. Ends at
+            the bottom bar's top (--nav-total) so Google's attribution sits just
+            above the flush bar instead of being covered by it. */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 'var(--nav-total)',
+            display: tab === 'map' ? 'block' : 'none',
+          }}
+        >
           <MapView />
         </Box>
         {tab === 'search' && <SearchOverlay onClose={() => setTab('map')} onScroll={onListScroll} />}

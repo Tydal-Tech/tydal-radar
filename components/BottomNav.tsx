@@ -21,24 +21,24 @@ export default function BottomNav({
   condensed?: boolean;
 }) {
   return (
-    // Uber-style solid dark bar: full-bleed width, square corners, a subtle top
-    // hairline. Floats just above Google's attribution strip (--ui-bottom keeps
-    // the logo/"Map data" line visible below it). Search lives here as an icon
-    // (social-media pattern), not a standing bar. Condenses (labels collapse,
-    // bar shrinks) while a list scrolls.
+    // Uber-style solid dark bar: full-bleed, flush to the bottom edge (fills the
+    // home-indicator area via the safe-area pad). The map ends at this bar's top
+    // (AppShell uses --nav-total) so Google's attribution stays visible just
+    // above it. Condenses (labels collapse, bar shrinks) while a list scrolls.
     <Paper
       elevation={0}
       sx={{
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 'var(--ui-bottom)',
+        bottom: 0,
         zIndex: 1200,
         borderRadius: 0,
         overflow: 'hidden',
         backgroundColor: '#161719',
         borderTop: '1px solid rgba(255,255,255,0.08)',
         boxShadow: '0 -4px 16px rgba(0,0,0,0.45)',
+        paddingBottom: 'var(--safe-bottom)',
       }}
     >
       <BottomNavigation

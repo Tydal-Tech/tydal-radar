@@ -26,7 +26,7 @@ const GRADIENT = [
 const POINT_ALPHA = 0.24;
 // Extra canvas margin (px) on every edge so pans stay covered between idle
 // re-fits, matching the buffered-viewport feel of the marker culling.
-const PAD = 160;
+const PAD = 220;
 
 // 256-entry RGBA lookup table sampled from the gradient: density (accumulated
 // alpha 0–255) indexes into it during the colorize pass.
@@ -77,7 +77,10 @@ function createHeatOverlay(): HeatOverlay {
   let raf = 0;
 
   class Overlay extends google.maps.OverlayView {
-    private painted = false;
+    // Geographic anchor of the canvas's top-left corner, captured each time
+    // render() lays the canvas out. draw() re-pins the canvas to this LatLng on
+    // every camera-move frame so the glow translates with the map during pans.
+    private anchor: google.maps.LatLng | null = null;
 
     setData(views: readonly ProspectView[]) {
       points = views.map((v) => new google.maps.LatLng(v.lat, v.lng));
@@ -99,15 +102,25 @@ function createHeatOverlay(): HeatOverlay {
       canvas.remove();
     }
 
-    // The API calls draw() on every camera-move frame. We paint ONCE (the first
-    // time a projection is available) and then skip: during pans/zooms the
-    // canvas rides the overlay pane's transform (like the markers), and we
-    // re-fit it to the new viewport on map 'idle' via refresh(). This keeps the
-    // getImageData-heavy render off the per-frame path, so panning stays smooth.
+    // The API calls draw() on every camera-move frame. We keep it CHEAP: no
+    // pixel work, just re-pin the already-rendered canvas's top-left to its
+    // stored geographic anchor so the glow translates WITH the map during a
+    // pan. The expensive getImageData render stays gated to idle / data change
+    // / enable via refresh(). (Zoom may briefly mis-scale until idle — same
+    // trade-off as the markers.)
     draw() {
-      if (this.painted) return;
-      this.painted = true;
-      this.refresh();
+      const proj = this.getProjection();
+      if (!proj) return;
+      if (!this.anchor) {
+        // First paint: no anchor yet — schedule the full render.
+        this.refresh();
+        return;
+      }
+      const p = proj.fromLatLngToDivPixel(this.anchor);
+      if (p) {
+        canvas.style.left = `${p.x}px`;
+        canvas.style.top = `${p.y}px`;
+      }
     }
 
     // rAF-coalesced full redraw — driven by idle / data change / (re)enable.
@@ -138,6 +151,9 @@ function createHeatOverlay(): HeatOverlay {
       if (w <= 0 || h <= 0) return;
       canvas.style.left = `${left}px`;
       canvas.style.top = `${top}px`;
+      // Remember the geographic point under the canvas's top-left so draw()
+      // can cheaply re-pin the canvas there on every camera-move frame.
+      this.anchor = proj.fromDivPixelToLatLng(new google.maps.Point(left, top));
       // 1× resolution on purpose: the glow is blurry by design, and skipping the
       // retina upscale keeps the per-pixel colorize pass ~4× cheaper.
       canvas.width = w; // also clears the canvas

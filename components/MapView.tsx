@@ -109,16 +109,26 @@ export default function MapView() {
         <ClusteredMarkers views={filtered} selectedId={selectedId} onSelect={setSelectedId} />
         {geo.position && (
           <AdvancedMarker position={geo.position} title="Your location" zIndex={9999}>
+            {/* Uber-style puck: white circle with a dark navigation arrow.
+                useGeolocation exposes no heading, so the arrow points up. */}
             <Box
               sx={{
-                width: 18,
-                height: 18,
+                width: 24,
+                height: 24,
                 borderRadius: '50%',
-                bgcolor: '#4285f4',
-                border: '2.5px solid #fff',
-                boxShadow: '0 0 0 1.5px rgba(66,133,244,0.45), 0 1px 4px rgba(0,0,0,0.4)',
+                bgcolor: '#fff',
+                border: '1px solid rgba(0,0,0,0.15)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxSizing: 'border-box',
               }}
-            />
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <path d="M5 0.5 L9 9.5 L5 7.1 L1 9.5 Z" fill="#1c1d21" />
+              </svg>
+            </Box>
           </AdvancedMarker>
         )}
       </Map>

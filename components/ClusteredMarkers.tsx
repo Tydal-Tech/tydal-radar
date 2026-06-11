@@ -15,9 +15,10 @@ const BRAND = '#06b6d4';
 // empty-then-populate flash). Larger = smoother panning, more mounted markers.
 const BUFFER = 0.35;
 
-// Clustering: aggressive radius collapses city/mid zoom into a clean handful of
-// clusters; pins only break out at street level (zoom > maxZoom).
-const CLUSTER_RADIUS = 220;
+// Clustering: a modest radius keeps most prospects as individual Uber-style
+// pins at city zoom, only merging genuinely overlapping ones into clusters;
+// everything breaks out at street level (zoom > maxZoom).
+const CLUSTER_RADIUS = 80;
 const CLUSTER_MAX_ZOOM = 16; // clusters at <=16, individual ICP pins at >=17
 
 // Stages with no rep activity yet (or a dead end) render recessive — smaller

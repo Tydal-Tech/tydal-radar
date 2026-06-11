@@ -21,16 +21,16 @@ const REDUCED_TRANSPARENCY = {
 
 // Faint top-down specular sheen layered over the translucent fill.
 const SPECULAR =
-  'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 38%, rgba(255,255,255,0) 100%)';
+  'linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02) 38%, rgba(255,255,255,0) 100%)';
 
 // Hero surfaces (floating nav, map control buttons, filter panel, search field).
 export const glassSx = {
   backdropFilter: GLASS_BLUR,
   WebkitBackdropFilter: GLASS_BLUR,
   backgroundImage: SPECULAR,
-  border: '1px solid rgba(255,255,255,0.16)',
+  border: '1px solid rgba(255,255,255,0.2)',
   boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 0 0 0.5px rgba(255,255,255,0.05), 0 16px 42px rgba(0,0,0,0.44)',
+    'inset 0 1px 0 rgba(255,255,255,0.28), inset 0 -1px 0 rgba(255,255,255,0.10), inset 0 -10px 18px rgba(255,255,255,0.03), inset 0 0 0 0.5px rgba(255,255,255,0.05), 0 16px 42px rgba(0,0,0,0.44)',
   ...REDUCED_TRANSPARENCY,
 } as const;
 
@@ -40,7 +40,8 @@ export const glassChipSx = {
   backdropFilter: GLASS_BLUR,
   WebkitBackdropFilter: GLASS_BLUR,
   backgroundImage: SPECULAR,
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 14px rgba(0,0,0,0.30)',
+  boxShadow:
+    'inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(255,255,255,0.10), 0 4px 14px rgba(0,0,0,0.30)',
   ...REDUCED_TRANSPARENCY,
 } as const;
 
@@ -50,7 +51,8 @@ export const glassCardSx = {
   borderRadius: 3,
   bgcolor: 'rgba(255,255,255,0.045)',
   backgroundImage: SPECULAR,
-  border: '1px solid rgba(255,255,255,0.1)',
+  border: '1px solid rgba(255,255,255,0.14)',
+  boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.10)',
   transition: 'transform 180ms cubic-bezier(0.34, 1.45, 0.5, 1)',
   '&:active': { transform: 'scale(0.985)' },
   ...REDUCED_TRANSPARENCY,

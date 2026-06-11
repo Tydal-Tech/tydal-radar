@@ -27,6 +27,7 @@ export default function BottomNav({
     // Condenses (labels collapse, bar shrinks) while a list scrolls.
     <Paper
       elevation={0}
+      className="tydal-glass"
       sx={{
         position: 'absolute',
         left: 16,

@@ -8,11 +8,13 @@ import {
   Chip,
   Stack,
   Button,
+  IconButton,
   TextField,
   Divider,
 } from '@mui/material';
 import PhoneIcon from '@mui/icons-material/Phone';
 import DirectionsIcon from '@mui/icons-material/Directions';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useData } from './DataProvider';
 import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
@@ -30,6 +32,7 @@ export default function ProspectSheet() {
   const [contractExpiry, setContractExpiry] = useState('');
   const [followUp, setFollowUp] = useState('');
   const [saving, setSaving] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
   // Load the selected prospect's current state into the editable draft.
   useEffect(() => {
@@ -40,10 +43,29 @@ export default function ProspectSheet() {
       setCurrentProvider(view.current_provider ?? '');
       setContractExpiry(view.contract_expiry ?? '');
       setFollowUp(view.follow_up_date ?? '');
+      setConfirmClear(false);
     }
   }, [view]);
 
+  // Auto-cancel the "Clear all" confirm so a stray earlier tap can't wipe data later.
+  useEffect(() => {
+    if (!confirmClear) return;
+    const t = setTimeout(() => setConfirmClear(false), 4000);
+    return () => clearTimeout(t);
+  }, [confirmClear]);
+
   const close = () => setSelectedId(null);
+
+  // Reset the editable draft to a blank prospect. Persisted only when the user taps Save.
+  function clearAll() {
+    setStage('not_knocked');
+    setNote('');
+    setContactName('');
+    setCurrentProvider('');
+    setContractExpiry('');
+    setFollowUp('');
+    setConfirmClear(false);
+  }
 
   async function onSave() {
     if (!view) return;
@@ -134,10 +156,10 @@ export default function ProspectSheet() {
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
             fullWidth
-            sx={{ mb: 2.5 }}
+            sx={{ mt: 2.5 }}
           />
 
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+          <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 1 }}>
             Stage
           </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -175,7 +197,7 @@ export default function ProspectSheet() {
             value={contractExpiry}
             onChange={(e) => setContractExpiry(e.target.value)}
             fullWidth
-            sx={{ mt: 2 }}
+            sx={{ mt: 2.5 }}
           />
 
           <TextField
@@ -188,15 +210,21 @@ export default function ProspectSheet() {
             sx={{ mt: 2.5 }}
           />
 
-          <TextField
-            label="Follow-up date"
-            type="date"
-            value={followUp}
-            onChange={(e) => setFollowUp(e.target.value)}
-            fullWidth
-            slotProps={{ inputLabel: { shrink: true } }}
-            sx={{ mt: 2 }}
-          />
+          <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: 'center' }}>
+            <TextField
+              label="Follow-up date"
+              type="date"
+              value={followUp}
+              onChange={(e) => setFollowUp(e.target.value)}
+              fullWidth
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            {followUp && (
+              <IconButton aria-label="Clear follow-up date" onClick={() => setFollowUp('')}>
+                <ClearIcon />
+              </IconButton>
+            )}
+          </Stack>
 
           <Button
             variant="contained"
@@ -207,6 +235,21 @@ export default function ProspectSheet() {
             sx={{ mt: 2.5 }}
           >
             {saving ? 'Saving…' : 'Save'}
+          </Button>
+
+          <Button
+            variant="text"
+            size="small"
+            fullWidth
+            disableRipple
+            onClick={() => (confirmClear ? clearAll() : setConfirmClear(true))}
+            sx={{
+              mt: 1,
+              fontWeight: 400,
+              color: confirmClear ? 'error.main' : 'text.secondary',
+            }}
+          >
+            {confirmClear ? 'Tap again to clear all' : 'Clear all'}
           </Button>
         </Box>
       )}

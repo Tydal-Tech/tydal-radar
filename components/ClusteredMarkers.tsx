@@ -11,7 +11,8 @@ import type { ProspectView } from '@/lib/types';
 // clicking a cluster zooms in. Building markers imperatively (instead of one
 // React <AdvancedMarker> per prospect) keeps panning smooth at 200+ pins —
 // markers are only rebuilt when the visible set (`views`) actually changes,
-// never on pan/zoom. Pin styling is unchanged (same stage colors).
+// never on pan/zoom. Pins keep the stage-color fill, with a white halo for
+// contrast against grey streets.
 export default function ClusteredMarkers({
   views,
   onSelect,
@@ -32,6 +33,11 @@ export default function ClusteredMarkers({
         borderColor: '#1a1f36',
         glyphColor: '#ffffff',
       });
+      // White contrast halo (plus a soft drop shadow) so the stage-colored pins
+      // stand out against grey streets when zoomed in. Stacking thin white
+      // shadows traces the teardrop outline; fill and shape are unchanged.
+      pin.element.style.filter =
+        'drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff) drop-shadow(0 1px 2px rgba(0,0,0,0.45))';
       const marker = new AdvancedMarkerElement({
         position: { lat: v.lat, lng: v.lng },
         title: v.name,

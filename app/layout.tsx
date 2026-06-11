@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from 'next';
-import { Roboto } from 'next/font/google';
+import { Montserrat } from 'next/font/google';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 import Providers from './providers';
 import RegisterSW from '@/components/RegisterSW';
 import './globals.css';
 
-const roboto = Roboto({
-  weight: ['300', '400', '500', '700'],
+const montserrat = Montserrat({
+  weight: ['400', '500', '600', '700'],
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-roboto',
+  variable: '--font-montserrat',
 });
 
 export const metadata: Metadata = {
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1a1f36',
+  themeColor: '#0F0F0F',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -40,7 +40,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={roboto.variable}>
+    <html lang="en" className={montserrat.variable}>
       <body>
         {/* Pin the app to the real visual viewport height (fixes the iOS PWA
             bottom gap where 100dvh/100vh can be short on load). Runs before paint. */}

@@ -183,7 +183,7 @@ function buildCluster(count: number, stage: Stage): HTMLElement {
     'justify-content:center',
     'font-weight:700',
     `font-size:${count < 100 ? 15 : 13}px`,
-    'font-family:var(--font-roboto), Roboto, sans-serif',
+    'font-family:var(--font-montserrat), Montserrat, sans-serif',
     'text-shadow:0 1px 2px rgba(0,0,0,0.35)',
     // Flat: faint dark edge + soft drop shadow — no white ring.
     'box-shadow:0 0 0 1px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.5)',

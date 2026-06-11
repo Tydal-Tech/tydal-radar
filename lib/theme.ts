@@ -4,7 +4,7 @@ import { PRESS_EASE, PRESS_MS } from './motion';
 // Tydal Radar brand: dark surfaces, blue primary actions, cyan accents.
 // Uber-Driver-style flat-dark aesthetic — solid near-black surfaces (driven by
 // the shared surface styles in lib/glass.ts) over a dark map, with
-// high-contrast type. Roboto via the CSS variable in layout.tsx.
+// high-contrast type. Montserrat via the CSS variable in layout.tsx.
 
 const theme = createTheme({
   palette: {
@@ -19,7 +19,7 @@ const theme = createTheme({
   shape: { borderRadius: 12 },
   typography: {
     fontFamily:
-      '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", var(--font-roboto), Roboto, "Helvetica Neue", Arial, sans-serif',
+      'var(--font-montserrat), "Montserrat", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif',
     h6: { fontWeight: 600 },
     button: { textTransform: 'none', fontWeight: 600 },
   },

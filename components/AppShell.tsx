@@ -61,7 +61,7 @@ function ShellInner() {
             display: 'block',
           }}
         >
-          <MapView searchOpen={tab === 'search'} />
+          <MapView sheetOpen={tab !== 'map'} />
         </Box>
         {/* Search, Follow-ups and Contracts are all pull-up sheets OVER the map
             (same concept as the prospect card): a shared dim scrim + a sliding

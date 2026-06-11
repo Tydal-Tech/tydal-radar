@@ -18,7 +18,7 @@ import { glassSx } from '@/lib/glass';
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
-export default function MapView({ searchOpen = false }: { searchOpen?: boolean }) {
+export default function MapView({ sheetOpen = false }: { sheetOpen?: boolean }) {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
     useData();
   const [filters, setFilters] = useState<Filters>({
@@ -50,11 +50,16 @@ export default function MapView({ searchOpen = false }: { searchOpen?: boolean }
   const anyFilter =
     filters.nb !== 'all' || filters.type !== 'all' || filters.stage !== 'all' || filters.attention;
 
-  // Recenter the map when a prospect is selected (e.g. tapped from search / Follow-ups).
+  // Recenter + zoom in on a selected prospect (tapped from search / a list).
+  // Math.max only ever zooms IN, so tapping a pin you're already close to just
+  // pans, while a search result from a far-out view flies in to street level.
   useEffect(() => {
     if (!map || !selectedId) return;
     const v = views.find((x) => x.place_id === selectedId);
-    if (v) map.panTo({ lat: v.lat, lng: v.lng });
+    if (v) {
+      map.panTo({ lat: v.lat, lng: v.lng });
+      map.setZoom(Math.max(map.getZoom() ?? MAP_ZOOM, 17));
+    }
   }, [map, selectedId, views]);
 
   // Surface transient toasts in local state so they auto-dismiss on a timer.
@@ -184,7 +189,7 @@ export default function MapView({ searchOpen = false }: { searchOpen?: boolean }
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          transform: searchOpen ? 'translateY(-55dvh)' : 'none',
+          transform: sheetOpen ? 'translateY(-55dvh)' : 'none',
           transition: 'transform 360ms cubic-bezier(0.22, 1, 0.36, 1)',
         }}
       >

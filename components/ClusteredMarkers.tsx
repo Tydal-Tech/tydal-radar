@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { MarkerClusterer, SuperClusterAlgorithm, type Renderer } from '@googlemaps/markerclusterer';
 import { STAGE_COLORS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
+import { urgency } from '@/lib/contracts';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 // Tydal brand accent — used only for the selected-pin pulse ring. The constant
@@ -42,6 +43,7 @@ const ICP_EMOJI: Record<IcpType, string> = {
 // absolutely centered on it.
 function buildPin(v: ProspectView): HTMLElement {
   const active = !INACTIVE_STAGES.has(v.stage);
+  const u = urgency(v); // due/overdue follow-up or soon-expiring contract
   const size = active ? 28 : 22; // body diameter
   const innerSize = active ? 20 : 15; // white glyph disc
   const half = size / 2;
@@ -51,7 +53,9 @@ function buildPin(v: ProspectView): HTMLElement {
   root.className = 'tydal-pin';
   // Dim on the root (not the body): globals.css animates the body's opacity to 1
   // on enter, so an inline body opacity would be overridden mid-animation.
-  if (!active) root.style.opacity = '0.65';
+  // Urgent prospects are never dimmed — they must stand out even when the stage
+  // itself is inactive.
+  if (!active && !u) root.style.opacity = '0.65';
 
   // Expanding ring shown only for the selected pin (animated via globals.css).
   const pulse = document.createElement('div');
@@ -105,6 +109,33 @@ function buildPin(v: ProspectView): HTMLElement {
   circle.appendChild(inner);
   root.appendChild(pulse);
   root.appendChild(circle);
+
+  // Urgency badge: a small red/amber dot pinned to the top-right of the body,
+  // outlined in the dark map base color so it pops against both the white pin
+  // ring and the dark map. Appended last so it renders above the body.
+  if (u) {
+    const badge = document.createElement('div');
+    const badgeSize = 9; // total diameter incl. the 1.5px dark outline
+    // Center the badge on the 45° top-right point of the body's edge. The body
+    // is centered on the 0×0 root, so that point is at (half·cos45, half·sin45).
+    const c = half * Math.SQRT1_2;
+    badge.style.cssText = [
+      'position:absolute',
+      `left:${(c - badgeSize / 2).toFixed(1)}px`,
+      `bottom:${(c - badgeSize / 2).toFixed(1)}px`,
+      `width:${badgeSize}px`,
+      `height:${badgeSize}px`,
+      'border-radius:50%',
+      `background:${u === 'red' ? '#d93025' : '#f9ab00'}`,
+      'border:1.5px solid #0b0f1a',
+      'box-sizing:border-box',
+      'box-shadow:0 1px 3px rgba(0,0,0,0.5)',
+      'pointer-events:none',
+      'z-index:1',
+    ].join(';');
+    root.appendChild(badge);
+  }
+
   return root;
 }
 

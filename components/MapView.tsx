@@ -10,6 +10,7 @@ import ClusteredMarkers from './ClusteredMarkers';
 import FilterPanel, { type Filters } from './FilterPanel';
 import { useData } from './DataProvider';
 import { useGeolocation } from '@/lib/useGeolocation';
+import { isUrgent } from '@/lib/contracts';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
 import { glassSx } from '@/lib/glass';
 
@@ -18,7 +19,12 @@ const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 export default function MapView() {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
     useData();
-  const [filters, setFilters] = useState<Filters>({ nb: 'all', type: 'all', stage: 'all' });
+  const [filters, setFilters] = useState<Filters>({
+    nb: 'all',
+    type: 'all',
+    stage: 'all',
+    attention: false,
+  });
   const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
   const [pullMsg, setPullMsg] = useState<string | null>(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -32,12 +38,14 @@ export default function MapView() {
         (v) =>
           (filters.nb === 'all' || v.neighborhood === filters.nb) &&
           (filters.type === 'all' || v.type === filters.type) &&
-          (filters.stage === 'all' || v.stage === filters.stage),
+          (filters.stage === 'all' || v.stage === filters.stage) &&
+          (!filters.attention || isUrgent(v)),
       ),
     [views, filters],
   );
 
-  const anyFilter = filters.nb !== 'all' || filters.type !== 'all' || filters.stage !== 'all';
+  const anyFilter =
+    filters.nb !== 'all' || filters.type !== 'all' || filters.stage !== 'all' || filters.attention;
 
   // Recenter the map when a prospect is selected (e.g. tapped from search / Follow-ups).
   useEffect(() => {

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Box, Chip, Stack, Typography, Button } from '@mui/material';
 import { NEIGHBORHOODS, ICP, ICP_TYPES } from '@/lib/icp';
 import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
+import { isUrgent } from '@/lib/contracts';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 const NB_SHORT: Record<string, string> = {
@@ -17,6 +18,7 @@ export interface Filters {
   nb: string | 'all';
   type: IcpType | 'all';
   stage: Stage | 'all';
+  attention: boolean; // only prospects with a due follow-up / expiring contract
 }
 
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -50,7 +52,7 @@ export default function FilterPanel({
   filters: Filters;
   setFilters: (f: Filters) => void;
 }) {
-  const { nb, type, stage } = filters;
+  const { nb, type, stage, attention } = filters;
 
   const countNb = (name: string) =>
     views.filter(
@@ -74,7 +76,8 @@ export default function FilterPanel({
         v.stage === s,
     ).length;
 
-  const anyActive = nb !== 'all' || type !== 'all' || stage !== 'all';
+  const anyActive = nb !== 'all' || type !== 'all' || stage !== 'all' || attention;
+  const urgentCount = views.filter(isUrgent).length;
 
   return (
     <Box sx={{ width: 290, maxWidth: '88vw', maxHeight: '62vh', overflowY: 'auto', p: 2 }}>
@@ -83,13 +86,28 @@ export default function FilterPanel({
         {anyActive && (
           <Button
             size="small"
-            onClick={() => setFilters({ nb: 'all', type: 'all', stage: 'all' })}
+            onClick={() => setFilters({ nb: 'all', type: 'all', stage: 'all', attention: false })}
             sx={{ color: 'text.secondary', minWidth: 0 }}
           >
             Clear all
           </Button>
         )}
       </Stack>
+
+      {/* One-tap urgency filter: due/overdue follow-ups + soon-expiring contracts. */}
+      <Box sx={{ mt: 1.5 }}>
+        <Chip
+          label={`Needs attention ${urgentCount}`}
+          variant={attention ? 'filled' : 'outlined'}
+          onClick={() => setFilters({ ...filters, attention: !attention })}
+          sx={{
+            fontWeight: 600,
+            bgcolor: attention ? '#d93025' : 'transparent',
+            color: attention ? '#fff' : 'text.primary',
+            borderColor: '#d93025',
+          }}
+        />
+      </Box>
 
       <SectionLabel>Neighborhood</SectionLabel>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>

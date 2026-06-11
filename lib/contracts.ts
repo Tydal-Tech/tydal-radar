@@ -3,6 +3,8 @@
 // picker). These parse / classify / format it for the Contracts tab and the
 // one-time migration script.
 
+import type { ProspectView } from '@/lib/types';
+
 const MONTHS: Record<string, number> = {
   jan: 1, january: 1,
   feb: 2, february: 2,
@@ -77,6 +79,26 @@ export function formatExpiry(monthYear: string): string {
   const [y, mo] = monthYear.split('-').map(Number);
   return new Date(y, mo - 1, 1).toLocaleDateString('en-CA', { month: 'short', year: 'numeric' });
 }
+
+/**
+ * Urgency of a prospect for "needs attention" surfacing (map pin badge + filter):
+ * RED — a follow-up is due/overdue today, or the contract expires within ~90 days;
+ * AMBER — the contract expires within ~180 days; null otherwise.
+ * "Today" is the local calendar date (same convention as FollowUps' todayStr()).
+ */
+export function urgency(v: ProspectView): 'red' | 'amber' | null {
+  const today = new Date().toLocaleDateString('en-CA'); // local YYYY-MM-DD
+  if (v.follow_up_date && v.follow_up_date <= today) return 'red';
+  const ym = parseExpiry(v.contract_expiry);
+  if (ym) {
+    const { bucket } = expiryStatus(ym);
+    if (bucket === 'red') return 'red';
+    if (bucket === 'amber') return 'amber';
+  }
+  return null;
+}
+
+export const isUrgent = (v: ProspectView) => urgency(v) !== null;
 
 export const EXPIRY_COLOR: Record<ExpiryBucket, string> = {
   red: '#d93025',

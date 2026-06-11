@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   InputBase,
@@ -38,6 +38,24 @@ export default function SearchOverlay({
   const [query, setQuery] = useState('');
   const dragControls = useDragControls();
 
+  // The keyboard overlays the page (viewport interactive-widget=overlays-content),
+  // so the app stays static; measure the keyboard height from the visual viewport
+  // and lift ONLY this sheet above it so the field stays visible.
+  const [kbInset, setKbInset] = useState(0);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () =>
+      setKbInset(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    onResize();
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
+  }, []);
+
   // Drop the keyboard (used on outside taps / scroll / drag).
   const blurKeyboard = () => (document.activeElement as HTMLElement | null)?.blur?.();
 
@@ -72,8 +90,9 @@ export default function SearchOverlay({
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 'var(--nav-total)',
+        bottom: kbInset > 0 ? `${kbInset}px` : 'var(--nav-total)',
         height: 'calc(var(--app-height) * 0.55)',
+        transition: 'bottom 0.25s ease',
         background: '#1a1a1a',
         borderTopLeftRadius: 18,
         borderTopRightRadius: 18,

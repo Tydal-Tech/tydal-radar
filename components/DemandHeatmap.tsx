@@ -99,6 +99,10 @@ function createHeatOverlay(): HeatOverlay {
   const canvas = document.createElement('canvas');
   canvas.style.position = 'absolute';
   canvas.style.pointerEvents = 'none';
+  // Toggling the heatmap button cross-fades the glow in/out (opacity transition)
+  // rather than snapping it on/off.
+  canvas.style.opacity = '0';
+  canvas.style.transition = 'opacity 0.6s ease';
   const ctx = canvas.getContext('2d')!;
   const stamp = buildStamp();
   const lut = buildLut();
@@ -118,6 +122,7 @@ function createHeatOverlay(): HeatOverlay {
     private anchorTL: google.maps.LatLng | null = null;
     private anchorBR: google.maps.LatLng | null = null;
     private renderW = 0;
+    private enabled = true;
 
     setData(views: readonly ProspectView[]) {
       pts = views.map((v) => ({ ll: new google.maps.LatLng(v.lat, v.lng), stage: v.stage }));
@@ -125,7 +130,8 @@ function createHeatOverlay(): HeatOverlay {
     }
 
     setEnabled(on: boolean) {
-      canvas.style.display = on ? 'block' : 'none';
+      this.enabled = on;
+      canvas.style.opacity = on ? '1' : '0'; // CSS transition handles the fade
       if (on) this.refresh();
     }
 
@@ -167,7 +173,7 @@ function createHeatOverlay(): HeatOverlay {
     }
 
     render() {
-      if (canvas.style.display === 'none') return;
+      if (!this.enabled) return;
       const proj = this.getProjection();
       const map = this.getMap();
       if (!proj || !(map instanceof google.maps.Map)) return;

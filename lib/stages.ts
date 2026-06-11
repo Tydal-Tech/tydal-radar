@@ -35,7 +35,7 @@ export const STAGE_COLORS: Record<Stage, string> = {
   talked: '#1a73e8',
   follow_up: '#06b6d4',
   client: '#1e8e3e',
-  not_interested: '#5f6368',
+  not_interested: '#d93025', // red — dead / rejected
 };
 
 // Text color that reads well on top of each stage color (for badges/glyphs).

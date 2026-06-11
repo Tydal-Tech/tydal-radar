@@ -132,28 +132,18 @@ function buildPin(v: ProspectView): HTMLElement {
   return root;
 }
 
-// Stage priority for cluster color: the most *advanced* stage present wins, so a
-// cluster containing any clients reads green (drawing the eye to progress) rather
-// than washing out to grey when most prospects are still not-knocked.
-const STAGE_RANK: Record<Stage, number> = {
-  not_interested: 0,
-  not_knocked: 1,
-  knocked: 2,
-  talked: 3,
-  follow_up: 4,
-  client: 5,
-};
-
+// The cluster bubble takes the color of the stage that is a MAJORITY (>50%) of
+// its prospects; with no clear majority it stays the neutral not_knocked grey.
+// So a cluster only "turns" a stage's color once that stage genuinely dominates
+// it — one prospect changing stage doesn't flip the whole bubble.
 function clusterStage(stages: Stage[]): Stage {
-  let best: Stage = 'not_knocked';
-  let bestRank = -1;
-  for (const s of stages) {
-    if (STAGE_RANK[s] > bestRank) {
-      bestRank = STAGE_RANK[s];
-      best = s;
-    }
+  const counts = new Map<Stage, number>();
+  for (const s of stages) counts.set(s, (counts.get(s) ?? 0) + 1);
+  const threshold = stages.length / 2;
+  for (const [s, n] of counts) {
+    if (n > threshold) return s;
   }
-  return best;
+  return 'not_knocked';
 }
 
 // A cluster bubble colored by its dominant (most-advanced) stage, with the count

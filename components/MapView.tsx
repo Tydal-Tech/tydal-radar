@@ -7,7 +7,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import TuneIcon from '@mui/icons-material/Tune';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
-import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import ClusteredMarkers from './ClusteredMarkers';
 import DemandHeatmap from './DemandHeatmap';
 import FilterPanel, { type Filters } from './FilterPanel';
@@ -218,7 +218,7 @@ export default function MapView({
           '&:hover': { bgcolor: 'background.paper' },
         }}
       >
-        <QueryStatsIcon />
+        <BarChartRoundedIcon />
       </Fab>
 
       <Fab

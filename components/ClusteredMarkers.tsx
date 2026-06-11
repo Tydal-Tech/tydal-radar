@@ -1,13 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMap, useMapsLibrary } from '@vis.gl/react-google-maps';
 import { MarkerClusterer, type Renderer } from '@googlemaps/markerclusterer';
 import { STAGE_COLORS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import type { IcpType, ProspectView } from '@/lib/types';
 
+// Tydal brand accent. Cyan isn't used by Google's own POI markers, so a constant
+// cyan ring reads instantly as "one of ours" vs. native map pins at full zoom.
+const BRAND = '#06b6d4';
+
 // Glyph per ICP type, shown in the white center of each pin so the prospect's
-// category reads at a glance (stage is the colored ring around it).
+// category reads at a glance (stage is the colored body).
 const ICP_EMOJI: Record<IcpType, string> = {
   daycare: '🧸',
   dental: '🦷',
@@ -15,13 +19,31 @@ const ICP_EMOJI: Record<IcpType, string> = {
   office: '🏢',
 };
 
-// A clean iOS-style marker: a stage-colored ring around a white center holding
-// the ICP glyph. Soft drop shadow for depth, no hard outline. The 0×0 root sits
-// at the coordinate (AdvancedMarker anchors content bottom-center); the circle
-// is absolutely centered on it so the pin marks the exact point.
+// An iOS-style prospect marker: stage-colored body, ICP glyph in a white center,
+// framed by a constant cyan brand ring (with a thin dark separator so the ring
+// stays visible even when the body itself is cyan/follow_up) and a white halo for
+// contrast on the dark map. A hidden ring child pulses only while selected.
+// The 0×0 root sits at the coordinate (AdvancedMarker anchors content
+// bottom-center); children are absolutely centered on it.
 function buildPin(v: ProspectView): HTMLElement {
   const root = document.createElement('div');
   root.style.position = 'relative';
+  root.className = 'tydal-pin';
+
+  // Expanding ring shown only for the selected pin (animated via globals.css).
+  const pulse = document.createElement('div');
+  pulse.className = 'tydal-pulse-ring';
+  pulse.style.cssText = [
+    'position:absolute',
+    'left:-19px',
+    'bottom:-19px',
+    'width:38px',
+    'height:38px',
+    'border-radius:50%',
+    `border:2px solid ${BRAND}`,
+    'box-sizing:border-box',
+    'pointer-events:none',
+  ].join(';');
 
   const circle = document.createElement('div');
   circle.style.cssText = [
@@ -35,7 +57,8 @@ function buildPin(v: ProspectView): HTMLElement {
     'display:flex',
     'align-items:center',
     'justify-content:center',
-    'box-shadow:0 0 3px rgba(255,255,255,0.35), 0 2px 6px rgba(0,0,0,0.5)',
+    // body · thin dark gap · cyan brand ring · white halo · soft depth shadow
+    `box-shadow:0 0 0 1.5px #0b0f1a, 0 0 0 4px ${BRAND}, 0 0 0 6px rgba(255,255,255,0.65), 0 1px 6px rgba(0,0,0,0.55)`,
   ].join(';');
 
   const inner = document.createElement('div');
@@ -53,30 +76,39 @@ function buildPin(v: ProspectView): HTMLElement {
   inner.textContent = ICP_EMOJI[v.type as IcpType] ?? '📍';
 
   circle.appendChild(inner);
+  root.appendChild(pulse);
   root.appendChild(circle);
   return root;
 }
 
-// The most common stage among a cluster's prospects — the cluster's color, so a
-// mostly-not-knocked cluster reads grey and one full of clients trends green.
-function dominantStage(stages: Stage[]): Stage {
-  const tally = new Map<Stage, number>();
-  for (const s of stages) tally.set(s, (tally.get(s) ?? 0) + 1);
+// Stage priority for cluster color: the most *advanced* stage present wins, so a
+// cluster containing any clients reads green (drawing the eye to progress) rather
+// than washing out to grey when most prospects are still not-knocked.
+const STAGE_RANK: Record<Stage, number> = {
+  not_interested: 0,
+  not_knocked: 1,
+  knocked: 2,
+  talked: 3,
+  follow_up: 4,
+  client: 5,
+};
+
+function clusterStage(stages: Stage[]): Stage {
   let best: Stage = 'not_knocked';
-  let bestN = -1;
-  for (const [s, n] of tally) {
-    if (n > bestN) {
-      bestN = n;
+  let bestRank = -1;
+  for (const s of stages) {
+    if (STAGE_RANK[s] > bestRank) {
+      bestRank = STAGE_RANK[s];
       best = s;
     }
   }
   return best;
 }
 
-// A cluster bubble colored by its dominant stage, with the count inside. Same
-// soft-shadow / white-ring language as the pins, but a solid colored disc (vs.
-// the pins' white center) so "group, zoom in" reads distinctly from a door.
-function buildCluster(count: number, dominant: Stage): HTMLElement {
+// A cluster bubble colored by its dominant (most-advanced) stage, with the count
+// inside. White ring + soft shadow language matches the pins, but a solid colored
+// disc (no cyan brand ring) so "group, zoom in" reads distinctly from a door.
+function buildCluster(count: number, stage: Stage): HTMLElement {
   const size = count < 10 ? 40 : count < 50 ? 48 : 56;
   const root = document.createElement('div');
   root.style.position = 'relative';
@@ -89,8 +121,8 @@ function buildCluster(count: number, dominant: Stage): HTMLElement {
     `width:${size}px`,
     `height:${size}px`,
     'border-radius:50%',
-    `background:${STAGE_COLORS[dominant]}`,
-    `color:${STAGE_ON_COLOR[dominant]}`,
+    `background:${STAGE_COLORS[stage]}`,
+    `color:${STAGE_ON_COLOR[stage]}`,
     'display:flex',
     'align-items:center',
     'justify-content:center',
@@ -110,35 +142,49 @@ function buildCluster(count: number, dominant: Stage): HTMLElement {
 // clicking a cluster zooms in. Building markers imperatively (instead of one
 // React <AdvancedMarker> per prospect) keeps panning smooth at 200+ pins —
 // markers are only rebuilt when the visible set (`views`) actually changes,
-// never on pan/zoom.
+// never on pan/zoom or on selection.
 export default function ClusteredMarkers({
   views,
+  selectedId,
   onSelect,
 }: {
   views: ProspectView[];
+  selectedId: string | null;
   onSelect: (placeId: string) => void;
 }) {
   const map = useMap();
   const markerLib = useMapsLibrary('marker');
 
+  // Pin root element per prospect, so selection can toggle the pulse class
+  // without rebuilding markers. selectedRef lets a fresh marker set (after a
+  // `views` change) restore the pulse on the currently-selected pin.
+  const pinRoots = useRef<Map<string, HTMLElement>>(new Map());
+  const selectedRef = useRef<string | null>(selectedId);
+  selectedRef.current = selectedId;
+
   useEffect(() => {
     if (!map || !markerLib) return;
     const { AdvancedMarkerElement } = markerLib;
 
-    // Remember each marker's stage so the cluster renderer can color clusters
-    // by their dominant stage.
+    // Remember each marker's stage so the cluster renderer can color clusters.
     const stageByMarker = new Map<google.maps.marker.AdvancedMarkerElement, Stage>();
+    const roots = new Map<string, HTMLElement>();
 
     const markers = views.map((v) => {
+      const root = buildPin(v);
+      if (v.place_id === selectedRef.current) root.classList.add('tydal-pin--selected');
+      roots.set(v.place_id, root);
+
       const marker = new AdvancedMarkerElement({
         position: { lat: v.lat, lng: v.lng },
         title: v.name,
-        content: buildPin(v),
+        content: root,
       });
       stageByMarker.set(marker, v.stage);
       marker.addListener('click', () => onSelect(v.place_id));
       return marker;
     });
+    pinRoots.current = roots;
 
     const renderer: Renderer = {
       render: (cluster) => {
@@ -147,10 +193,10 @@ export default function ClusteredMarkers({
           const s = stageByMarker.get(m as google.maps.marker.AdvancedMarkerElement);
           if (s) stages.push(s);
         }
-        const dominant = stages.length ? dominantStage(stages) : 'not_knocked';
+        const stage = stages.length ? clusterStage(stages) : 'not_knocked';
         return new AdvancedMarkerElement({
           position: cluster.position,
-          content: buildCluster(cluster.count, dominant),
+          content: buildCluster(cluster.count, stage),
           zIndex: 1000 + cluster.count,
         });
       },
@@ -164,8 +210,17 @@ export default function ClusteredMarkers({
       markers.forEach((m) => {
         m.map = null;
       });
+      pinRoots.current = new Map();
     };
   }, [map, markerLib, views, onSelect]);
+
+  // Toggle the pulse on the selected pin only — no marker rebuild, so this is
+  // cheap and never touches the other pins.
+  useEffect(() => {
+    pinRoots.current.forEach((root, id) => {
+      root.classList.toggle('tydal-pin--selected', id === selectedId);
+    });
+  }, [selectedId]);
 
   return null;
 }

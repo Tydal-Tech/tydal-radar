@@ -91,7 +91,7 @@ export default function MapView() {
         clickableIcons={false}
         style={{ width: '100%', height: '100%' }}
       >
-        <ClusteredMarkers views={filtered} onSelect={setSelectedId} />
+        <ClusteredMarkers views={filtered} selectedId={selectedId} onSelect={setSelectedId} />
         {geo.position && (
           <AdvancedMarker position={geo.position} title="Your location" zIndex={9999}>
             <Box

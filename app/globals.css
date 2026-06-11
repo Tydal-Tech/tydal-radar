@@ -19,6 +19,36 @@ body {
   box-sizing: border-box;
 }
 
+/* Selected prospect pin: a single expanding cyan ring. Only the selected pin
+   carries the .tydal-pin--selected class, so just one element animates at a
+   time — idle pins keep the ring hidden and never repaint, keeping map pan/zoom
+   jank-free. GPU-friendly: transform + opacity only. */
+.tydal-pulse-ring {
+  opacity: 0;
+}
+.tydal-pin--selected .tydal-pulse-ring {
+  animation: tydal-pin-pulse 1.8s ease-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes tydal-pin-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.3);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tydal-pin--selected .tydal-pulse-ring {
+    animation: none;
+  }
+}
+
 a {
   color: inherit;
   text-decoration: none;

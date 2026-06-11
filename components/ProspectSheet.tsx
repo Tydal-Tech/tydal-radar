@@ -35,9 +35,12 @@ export default function ProspectSheet() {
   const [followUp, setFollowUp] = useState('');
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  // Two-detent sheet: collapsed (name + stage + Save) vs expanded (everything).
+  const [expanded, setExpanded] = useState(false);
   const dragControls = useDragControls();
 
-  // Load the selected prospect's current state into the editable draft.
+  // Load the selected prospect's current state into the editable draft, and
+  // default to the collapsed detent.
   useEffect(() => {
     if (view) {
       setStage(view.stage);
@@ -47,6 +50,7 @@ export default function ProspectSheet() {
       setContractExpiry(parseExpiry(view.contract_expiry) ?? '');
       setFollowUp(view.follow_up_date ?? '');
       setConfirmClear(false);
+      setExpanded(false);
     }
   }, [view]);
 
@@ -123,7 +127,7 @@ export default function ProspectSheet() {
             style={{ position: 'absolute', inset: 0 }}
           />
 
-          {/* spring-physics sheet; drag the grabber down to dismiss */}
+          {/* spring-physics sheet; drag the grabber to expand / collapse / dismiss */}
           <motion.div
             className="tydal-sheet"
             initial={{ y: '100%' }}
@@ -134,9 +138,18 @@ export default function ProspectSheet() {
             dragControls={dragControls}
             dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.5 }}
+            dragElastic={{ top: 0.4, bottom: 0.5 }}
             onDragEnd={(_, info) => {
-              if (info.offset.y > 120 || info.velocity.y > 800) close();
+              const dy = info.offset.y;
+              const vy = info.velocity.y;
+              if (dy < -50 || vy < -500) {
+                setExpanded(true);
+              } else if (dy > 50 || vy > 500) {
+                // From expanded a moderate pull collapses; a strong one (or any
+                // pull from collapsed) dismisses.
+                if (expanded && dy < 240 && vy < 1200) setExpanded(false);
+                else close();
+              }
             }}
             style={{
               position: 'relative',
@@ -149,9 +162,10 @@ export default function ProspectSheet() {
               flexDirection: 'column',
             }}
           >
-            {/* grabber — also the drag handle */}
+            {/* grabber — drag to change detent, tap to toggle */}
             <Box
               onPointerDown={(e) => dragControls.start(e)}
+              onClick={() => setExpanded((v) => !v)}
               sx={{
                 flexShrink: 0,
                 display: 'flex',
@@ -175,6 +189,7 @@ export default function ProspectSheet() {
                 pb: 'calc(var(--safe-bottom) + 20px)',
               }}
             >
+              {/* --- Collapsed peek: identity + stage + Save --- */}
               <Stack
                 direction="row"
                 spacing={1}
@@ -198,46 +213,6 @@ export default function ProspectSheet() {
                   }}
                 />
               </Stack>
-
-              {view.address && (
-                <Typography sx={{ mt: 1, fontSize: '1rem', color: 'text.secondary' }}>
-                  {view.address}
-                </Typography>
-              )}
-
-              <Stack direction="row" spacing={1.5} sx={{ mt: 2 }}>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  fullWidth
-                  startIcon={<PhoneIcon />}
-                  disabled={!view.phone}
-                  component="a"
-                  href={view.phone ? `tel:${view.phone}` : undefined}
-                >
-                  Call
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="large"
-                  fullWidth
-                  startIcon={<DirectionsIcon />}
-                  onClick={() => openDirections(view.address ?? `${view.lat},${view.lng}`)}
-                >
-                  Directions
-                </Button>
-              </Stack>
-
-              <Divider sx={{ my: 2 }} />
-
-              <TextField
-                label="Contact name"
-                placeholder="e.g. Marie (director)"
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                fullWidth
-                sx={{ mt: 2.5 }}
-              />
 
               <Typography sx={{ mt: 2.5, mb: 1, fontSize: '1rem', fontWeight: 600 }}>
                 Stage
@@ -300,50 +275,112 @@ export default function ProspectSheet() {
                 })}
               </Box>
 
-              <TextField
-                label="Current provider"
-                placeholder="e.g. CleanPro, Jani-King, unknown"
-                value={currentProvider}
-                onChange={(e) => setCurrentProvider(e.target.value)}
-                fullWidth
-                sx={{ mt: 2.5 }}
-              />
+              {/* --- Detail: revealed when expanded --- */}
+              <motion.div
+                initial={false}
+                animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
+                transition={SPRING_SHEET}
+                style={{ overflow: 'hidden' }}
+              >
+                <Stack direction="row" spacing={1.5} sx={{ mt: 2.5 }}>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    fullWidth
+                    startIcon={<PhoneIcon />}
+                    disabled={!view.phone}
+                    component="a"
+                    href={view.phone ? `tel:${view.phone}` : undefined}
+                  >
+                    Call
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    fullWidth
+                    startIcon={<DirectionsIcon />}
+                    onClick={() => openDirections(view.address ?? `${view.lat},${view.lng}`)}
+                  >
+                    Directions
+                  </Button>
+                </Stack>
 
-              <TextField
-                label="Contract expiry"
-                type="month"
-                value={contractExpiry}
-                onChange={(e) => setContractExpiry(e.target.value)}
-                fullWidth
-                slotProps={{ inputLabel: { shrink: true } }}
-                sx={{ mt: 2.5 }}
-              />
+                {view.address && (
+                  <Typography sx={{ mt: 2, fontSize: '1rem', color: 'text.secondary' }}>
+                    {view.address}
+                  </Typography>
+                )}
 
-              <TextField
-                label="Note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                multiline
-                minRows={2}
-                fullWidth
-                sx={{ mt: 2.5 }}
-              />
+                <Divider sx={{ my: 2 }} />
 
-              <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: 'center' }}>
                 <TextField
-                  label="Follow-up date"
-                  type="date"
-                  value={followUp}
-                  onChange={(e) => setFollowUp(e.target.value)}
+                  label="Contact name"
+                  placeholder="e.g. Marie (director)"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  fullWidth
+                />
+
+                <TextField
+                  label="Current provider"
+                  placeholder="e.g. CleanPro, Jani-King, unknown"
+                  value={currentProvider}
+                  onChange={(e) => setCurrentProvider(e.target.value)}
+                  fullWidth
+                  sx={{ mt: 2.5 }}
+                />
+
+                <TextField
+                  label="Contract expiry"
+                  type="month"
+                  value={contractExpiry}
+                  onChange={(e) => setContractExpiry(e.target.value)}
                   fullWidth
                   slotProps={{ inputLabel: { shrink: true } }}
+                  sx={{ mt: 2.5 }}
                 />
-                {followUp && (
-                  <IconButton aria-label="Clear follow-up date" onClick={() => setFollowUp('')}>
-                    <ClearIcon />
-                  </IconButton>
-                )}
-              </Stack>
+
+                <TextField
+                  label="Note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  multiline
+                  minRows={2}
+                  fullWidth
+                  sx={{ mt: 2.5 }}
+                />
+
+                <Stack direction="row" spacing={1} sx={{ mt: 2, alignItems: 'center' }}>
+                  <TextField
+                    label="Follow-up date"
+                    type="date"
+                    value={followUp}
+                    onChange={(e) => setFollowUp(e.target.value)}
+                    fullWidth
+                    slotProps={{ inputLabel: { shrink: true } }}
+                  />
+                  {followUp && (
+                    <IconButton aria-label="Clear follow-up date" onClick={() => setFollowUp('')}>
+                      <ClearIcon />
+                    </IconButton>
+                  )}
+                </Stack>
+
+                <Button
+                  variant="text"
+                  size="small"
+                  fullWidth
+                  disableRipple
+                  onClick={() => (confirmClear ? clearAll() : setConfirmClear(true))}
+                  sx={{
+                    mt: 1.5,
+                    fontWeight: 400,
+                    color: confirmClear ? 'error.main' : 'text.secondary',
+                  }}
+                >
+                  {confirmClear ? 'Tap again to clear all' : 'Clear all'}
+                </Button>
+              </motion.div>
 
               <Button
                 variant="contained"
@@ -356,20 +393,13 @@ export default function ProspectSheet() {
                 {saving ? 'Saving…' : 'Save'}
               </Button>
 
-              <Button
-                variant="text"
-                size="small"
-                fullWidth
-                disableRipple
-                onClick={() => (confirmClear ? clearAll() : setConfirmClear(true))}
-                sx={{
-                  mt: 1,
-                  fontWeight: 400,
-                  color: confirmClear ? 'error.main' : 'text.secondary',
-                }}
-              >
-                {confirmClear ? 'Tap again to clear all' : 'Clear all'}
-              </Button>
+              {!expanded && (
+                <Typography
+                  sx={{ mt: 1.5, textAlign: 'center', fontSize: '0.8rem', color: 'text.secondary' }}
+                >
+                  Drag up for details
+                </Typography>
+              )}
             </Box>
           </motion.div>
         </Box>

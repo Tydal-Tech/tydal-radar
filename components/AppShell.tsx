@@ -7,6 +7,7 @@ import DataProvider, { useData } from './DataProvider';
 import BottomNav, { type Tab } from './BottomNav';
 import MapView from './MapView';
 import FollowUps from './FollowUps';
+import Contracts from './Contracts';
 import SearchOverlay from './SearchOverlay';
 import ProspectSheet from './ProspectSheet';
 
@@ -35,6 +36,7 @@ function ShellInner() {
         </Box>
         {tab === 'search' && <SearchOverlay onClose={() => setTab('map')} />}
         {tab === 'followups' && <FollowUps onOpen={() => setTab('map')} />}
+        {tab === 'contracts' && <Contracts onOpen={() => setTab('map')} />}
       </Box>
       <BottomNav value={tab} onChange={setTab} followUpCount={followUpCount} />
       <ProspectSheet />

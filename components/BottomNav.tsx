@@ -4,9 +4,10 @@ import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import SearchIcon from '@mui/icons-material/Search';
 import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
+import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import { glassSx } from '@/lib/glass';
 
-export type Tab = 'map' | 'search' | 'followups';
+export type Tab = 'map' | 'search' | 'followups' | 'contracts';
 
 export default function BottomNav({
   value,
@@ -45,6 +46,11 @@ export default function BottomNav({
           label={followUpCount ? `Follow-ups (${followUpCount})` : 'Follow-ups'}
           value="followups"
           icon={<EventNoteOutlinedIcon />}
+        />
+        <BottomNavigationAction
+          label="Contracts"
+          value="contracts"
+          icon={<CalendarMonthOutlinedIcon />}
         />
       </BottomNavigation>
     </Paper>

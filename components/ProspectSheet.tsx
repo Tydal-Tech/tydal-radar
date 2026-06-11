@@ -18,6 +18,7 @@ import ClearIcon from '@mui/icons-material/Clear';
 import { useData } from './DataProvider';
 import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
+import { parseExpiry } from '@/lib/contracts';
 import { openDirections } from '@/lib/directions';
 import type { IcpType } from '@/lib/types';
 
@@ -41,7 +42,7 @@ export default function ProspectSheet() {
       setNote(view.note ?? '');
       setContactName(view.contact_name ?? '');
       setCurrentProvider(view.current_provider ?? '');
-      setContractExpiry(view.contract_expiry ?? '');
+      setContractExpiry(parseExpiry(view.contract_expiry) ?? '');
       setFollowUp(view.follow_up_date ?? '');
       setConfirmClear(false);
     }
@@ -206,10 +207,11 @@ export default function ProspectSheet() {
 
           <TextField
             label="Contract expiry"
-            placeholder="e.g. March 2027, unknown"
+            type="month"
             value={contractExpiry}
             onChange={(e) => setContractExpiry(e.target.value)}
             fullWidth
+            slotProps={{ inputLabel: { shrink: true } }}
             sx={{ mt: 2.5 }}
           />
 

@@ -14,6 +14,14 @@ export const ICP: Record<
 
 export const ICP_TYPES = Object.keys(ICP) as IcpType[];
 
+// Vertical glyph per ICP type (same set the map pins use), for list rows.
+export const ICP_EMOJI: Record<IcpType, string> = {
+  daycare: '🧸',
+  dental: '🦷',
+  gym: '🏋️',
+  office: '🏢',
+};
+
 // Approximate bounding boxes for each target Montreal neighborhood. Used as the
 // Places `locationRestriction` so results stay tight to the area we canvass.
 export const NEIGHBORHOODS: {

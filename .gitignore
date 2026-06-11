@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local PWA icon source (lives in public/icons/icon-source.png in the repo)
+/tydal-radar-icon.png

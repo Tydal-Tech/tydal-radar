@@ -31,6 +31,10 @@ function ShellInner() {
     const vv = window.visualViewport;
     if (!vv) return;
     const update = () => {
+      // iOS pans the page up to reveal a focused input; the app is always supposed
+      // to be at scroll 0, so undo it — this keeps the relative shell + nav static
+      // when the keyboard opens.
+      if (window.scrollY !== 0 || vv.offsetTop > 0) window.scrollTo(0, 0);
       // While a field is focused (keyboard open) keep the shell at its full
       // height so the map + nav stay STATIC — the keyboard just overlays them and
       // only the search sheet lifts above it (handled in SheetShell). On blur the
@@ -41,10 +45,14 @@ function ShellInner() {
     };
     vv.addEventListener('resize', update);
     vv.addEventListener('scroll', update);
+    // iOS sometimes reports the focus pan as a window scroll with no
+    // visualViewport event — catch that too.
+    window.addEventListener('scroll', update);
     update();
     return () => {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
+      window.removeEventListener('scroll', update);
     };
   }, []);
 

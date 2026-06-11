@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Box,
   InputBase,
@@ -38,6 +38,17 @@ export default function SearchOverlay({
 }) {
   const { views, setSelectedId } = useData();
   const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the field WITHOUT scrolling, after the sheet's entrance animation has
+  // settled. `preventScroll: true` stops iOS from panning the page to reveal
+  // the input, and the ~350ms delay lets the SheetShell spring slide-in finish
+  // so focus happens on-screen (autoFocus would fire while the sheet is still
+  // off-screen, making iOS compute a maximal reveal-scroll).
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
+    return () => clearTimeout(t);
+  }, []);
 
   // Drop the keyboard (used on outside taps / scroll).
   const blurKeyboard = () => (document.activeElement as HTMLElement | null)?.blur?.();
@@ -79,7 +90,7 @@ export default function SearchOverlay({
           >
             <SearchIcon sx={{ color: 'text.secondary' }} />
             <InputBase
-              autoFocus
+              inputRef={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search prospects"

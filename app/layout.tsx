@@ -34,11 +34,6 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  // The on-screen keyboard OVERLAYS the page instead of resizing the layout
-  // viewport. The app shell sizes itself to window.visualViewport.height
-  // (AppShell), so when the keyboard opens the shell — nav, sheets, detents —
-  // shrinks to the visible area and restores when it closes.
-  interactiveWidget: 'overlays-content',
 };
 
 export default function RootLayout({

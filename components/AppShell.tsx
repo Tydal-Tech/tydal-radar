@@ -35,12 +35,14 @@ function ShellInner() {
   return (
     <Box
       sx={{
-        // Strictly full screen: a fixed box pinned to all four viewport edges.
-        // inset:0 uses the actual viewport (no vh / innerHeight guesswork), so it
-        // can't under-shoot (bottom gap) or over-shoot (clipped nav). The keyboard
-        // overlays (viewport interactive-widget) so this stays put while typing.
-        position: 'fixed',
-        inset: 0,
+        // Full screen WITHOUT position:fixed — iOS shifts fixed elements around
+        // the keyboard and can leave the shell shifted up (a persistent bottom
+        // gap). Instead html/body are locked to 100dvh + overflow:hidden and this
+        // fills them at 100dvh. dvh ignores the keyboard, so opening it can't
+        // resize/shift the app — the keyboard just overlays it.
+        position: 'relative',
+        height: '100dvh',
+        width: '100%',
         overflow: 'hidden',
         bgcolor: 'background.default',
       }}

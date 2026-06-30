@@ -22,7 +22,7 @@ function ShellInner() {
   const followUpCount = views.filter((v) => v.follow_up_date).length;
   // Shared MotionValue: the open pull-up sheet publishes its height here; the
   // map's floating controls read it to anchor to the sheet's top edge.
-  const sheetHeight = useRef(motionValue(0)).current;
+  const [sheetHeight] = useState(() => motionValue(0));
 
   // Shell height = the VISUAL viewport height. iOS Safari does not recompute
   // dvh/vh when the on-screen keyboard opens, so a dvh-sized shell keeps the

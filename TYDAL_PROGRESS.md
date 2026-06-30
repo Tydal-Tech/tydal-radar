@@ -24,6 +24,7 @@ Loop memory for the autonomous improvement campaign. Newest entries on top.
 8. Route/day planning across filtered prospects.
 
 ## Log
+- 2026-06-30 — react-hooks/refs: AppShell + MapView shared MotionValue now via lazy `useState(() => motionValue(0))` instead of `useRef(...).current` (identical stable instance, no gesture-logic change). Lint 15→13 errors. Tests 136, tsc, build green. Next: remaining refs (latest-value assigns in ClusteredMarkers/SheetShell/ProspectSheet → move to effect), then set-state-in-effect case review.
 - (campaign start) Created CHANGELOG.md + this file. Baseline captured above.
 - 2026-06-30 — Added Vitest (`npm test`) + 136 unit tests across contracts/stages/icp/analytics (pure logic; node env). tsc + build green.
 - 2026-06-30 — Lint safe subset: Node-script `require` exemption, removed 2 dead `eslint-disable` directives, pruned unused `ICP` import in Contracts. 21→17 problems; tests/tsc/build green. Remaining 15 = react-hooks rules across interactive core (see queue #2) — deferred for careful per-file work. Next: react-hooks/refs latest-value fixes (mechanical, lowest-risk first: AppShell/MapView `useRef(motionValue()).current` → lazy `useState`), then expand tests toward component/integration coverage.

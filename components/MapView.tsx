@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Map, AdvancedMarker, ColorScheme, useMap } from '@vis.gl/react-google-maps';
 import { Box, Fab, Popover, Snackbar, CircularProgress, LinearProgress } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -45,7 +45,7 @@ export default function MapView({
   // Lift the floating control stack so its lowest button rides ~12px above the
   // open sheet's top edge — tracks the sheet's drag/snap via the shared height
   // (0 when no sheet is open, so the stack rests in place).
-  const fallbackHeight = useRef(motionValue(0)).current;
+  const [fallbackHeight] = useState(() => motionValue(0));
   const sheetHeight = useSheetHeight() ?? fallbackHeight;
   const fabY = useTransform(sheetHeight, (h) => -Math.max(0, h - 12));
 

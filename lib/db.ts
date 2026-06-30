@@ -1,16 +1,33 @@
 import { supabase } from './supabaseClient';
 import type { Prospect, Pipeline } from './types';
 
+// PostgREST caps a select at ~1000 rows per request, so fetch in pages and
+// concatenate until a short page comes back — otherwise the map silently shows
+// only the first 1000 of N prospects. Ordered by the primary key so paging is
+// stable across requests.
+const PAGE = 1000;
+
+async function fetchAllRows<T>(table: 'prospects' | 'pipeline'): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('*')
+      .order('place_id', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return rows;
+}
+
 export async function fetchProspects(): Promise<Prospect[]> {
-  const { data, error } = await supabase.from('prospects').select('*');
-  if (error) throw error;
-  return (data ?? []) as Prospect[];
+  return fetchAllRows<Prospect>('prospects');
 }
 
 export async function fetchPipeline(): Promise<Pipeline[]> {
-  const { data, error } = await supabase.from('pipeline').select('*');
-  if (error) throw error;
-  return (data ?? []) as Pipeline[];
+  return fetchAllRows<Pipeline>('pipeline');
 }
 
 /** Insert new prospects, leaving existing rows untouched (ignore duplicates). */

@@ -7,7 +7,7 @@ import { useData } from './DataProvider';
 import SheetShell from './SheetShell';
 import { SPRING_120 } from '@/lib/motion';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
-import { ICP, ICP_EMOJI } from '@/lib/icp';
+import { ICP_EMOJI } from '@/lib/icp';
 import { parseExpiry, expiryStatus, formatExpiry, EXPIRY_COLOR } from '@/lib/contracts';
 import { glassCardSx } from '@/lib/glass';
 import type { IcpType, ProspectView } from '@/lib/types';

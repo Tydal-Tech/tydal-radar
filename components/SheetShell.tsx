@@ -96,7 +96,7 @@ export default function SheetShell({
     height.set(d[idx]);
     setAtFull(idx === d.length - 1);
     if (contentRef.current) contentRef.current.scrollTop = 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Recompute the detents when the visual viewport resizes (iOS keyboard

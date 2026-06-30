@@ -179,7 +179,7 @@ export default function ProspectSheet() {
       });
       setAtFull(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [stage]);
 
   // Auto-cancel the "Clear all" confirm so a stray earlier tap can't wipe data later.

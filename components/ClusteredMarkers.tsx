@@ -39,6 +39,8 @@ const ICP_SVG: Record<IcpType, string> = {
     '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>',
   veterinary:
     '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><circle cx="5.5" cy="11" r="2.2"/><circle cx="9.5" cy="6.5" r="2.2"/><circle cx="14.5" cy="6.5" r="2.2"/><circle cx="18.5" cy="11" r="2.2"/><path d="M12 12c-2.8 0-5 2.2-5 4.6 0 1.9 1.5 2.9 3.2 2.9 1 0 1.3-.3 1.8-.3s.8.3 1.8.3c1.7 0 3.2-1 3.2-2.9 0-2.4-2.2-4.6-5-4.6z"/></svg>',
+  medical:
+    '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="#fff"><path d="M8 2h8v6h6v8h-6v6H8v-6H2V8h6z"/></svg>',
 };
 
 // A flat Uber-style prospect marker: a solid stage-colored circle with the

@@ -8,6 +8,7 @@ export const ICP: Record<IcpType, { label: string }> = {
   gym: { label: 'Gym' },
   office: { label: 'Office' },
   veterinary: { label: 'Veterinary' },
+  medical: { label: 'Medical' },
 };
 
 export const ICP_TYPES = Object.keys(ICP) as IcpType[];
@@ -16,11 +17,16 @@ export const ICP_TYPES = Object.keys(ICP) as IcpType[];
 // using an `includedType` (a Places "Table A" type) to stay on-target. `office`
 // is intentionally several searches (lawyer / accounting / real estate) merged
 // into ONE bucket — no separate labels or subtypes — matching radar-grid-scrape.js.
+// `medical` (clinics/doctors) is its own bucket, kept distinct from office; it is
+// listed BEFORE office so a place matching both is deduped as medical (the pull
+// dedupes globally by place_id, first search wins). Note: the scraper has no
+// medical query, so medical rows come only from the in-app Refresh for now.
 export const ICP_SEARCHES: { type: IcpType; query: string; includedType: string }[] = [
   { type: 'daycare', query: 'garderie CPE daycare', includedType: 'child_care_agency' },
   { type: 'dental', query: 'dental clinic dentist', includedType: 'dentist' },
   { type: 'gym', query: 'gym fitness studio', includedType: 'gym' },
   { type: 'veterinary', query: 'veterinary clinic vet animal hospital', includedType: 'veterinary_care' },
+  { type: 'medical', query: 'medical clinic doctor walk-in', includedType: 'doctor' },
   { type: 'office', query: 'law firm lawyer attorney', includedType: 'lawyer' },
   { type: 'office', query: 'accounting firm accountant CPA', includedType: 'accounting' },
   { type: 'office', query: 'real estate agency realtor broker', includedType: 'real_estate_agency' },
@@ -33,6 +39,7 @@ export const ICP_EMOJI: Record<IcpType, string> = {
   gym: '🏋️',
   office: '🏢',
   veterinary: '🐾',
+  medical: '🩺',
 };
 
 // Approximate bounding boxes for each target Montreal neighborhood. Used as the

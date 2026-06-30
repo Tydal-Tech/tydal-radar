@@ -16,7 +16,7 @@ const NB_SHORT: Record<string, string> = {
 
 export interface Filters {
   nb: string | 'all';
-  type: IcpType | 'all';
+  types: IcpType[]; // selected ICP types; empty = all types (multi-select)
   stage: Stage | 'all';
   attention: boolean; // only prospects with a due follow-up / expiring contract
 }
@@ -52,12 +52,13 @@ export default function FilterPanel({
   filters: Filters;
   setFilters: (f: Filters) => void;
 }) {
-  const { nb, type, stage, attention } = filters;
+  const { nb, types, stage, attention } = filters;
+  const typeMatch = (t: IcpType) => types.length === 0 || types.includes(t);
 
   const countNb = (name: string) =>
     views.filter(
       (v) =>
-        (type === 'all' || v.type === type) &&
+        typeMatch(v.type) &&
         (stage === 'all' || v.stage === stage) &&
         v.neighborhood === name,
     ).length;
@@ -72,11 +73,11 @@ export default function FilterPanel({
     views.filter(
       (v) =>
         (nb === 'all' || v.neighborhood === nb) &&
-        (type === 'all' || v.type === type) &&
+        typeMatch(v.type) &&
         v.stage === s,
     ).length;
 
-  const anyActive = nb !== 'all' || type !== 'all' || stage !== 'all' || attention;
+  const anyActive = nb !== 'all' || types.length > 0 || stage !== 'all' || attention;
   const urgentCount = views.filter(isUrgent).length;
 
   return (
@@ -86,7 +87,7 @@ export default function FilterPanel({
         {anyActive && (
           <Button
             size="small"
-            onClick={() => setFilters({ nb: 'all', type: 'all', stage: 'all', attention: false })}
+            onClick={() => setFilters({ nb: 'all', types: [], stage: 'all', attention: false })}
             sx={{ color: 'text.secondary', minWidth: 0 }}
           >
             Clear all
@@ -135,14 +136,19 @@ export default function FilterPanel({
       <SectionLabel>Type</SectionLabel>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
         {ICP_TYPES.map((t) => {
-          const selected = type === t;
+          const selected = types.includes(t);
           return (
             <Chip
               key={`${t}-${selected}`}
               className={selected ? 'tydal-pop' : undefined}
               label={`${ICP[t].label} ${countType(t)}`}
               variant={selected ? 'filled' : 'outlined'}
-              onClick={() => setFilters({ ...filters, type: selected ? 'all' : t })}
+              onClick={() =>
+                setFilters({
+                  ...filters,
+                  types: selected ? types.filter((x) => x !== t) : [...types, t],
+                })
+              }
               sx={{
                 bgcolor: selected ? '#FFFFFF' : 'transparent',
                 color: selected ? '#000000' : 'text.primary',

@@ -30,7 +30,7 @@ export default function MapView({
     useData();
   const [filters, setFilters] = useState<Filters>({
     nb: 'all',
-    type: 'all',
+    types: [],
     stage: 'all',
     attention: false,
   });
@@ -54,7 +54,7 @@ export default function MapView({
       views.filter(
         (v) =>
           (filters.nb === 'all' || v.neighborhood === filters.nb) &&
-          (filters.type === 'all' || v.type === filters.type) &&
+          (filters.types.length === 0 || filters.types.includes(v.type)) &&
           (filters.stage === 'all' || v.stage === filters.stage) &&
           (!filters.attention || isUrgent(v)),
       ),
@@ -62,7 +62,7 @@ export default function MapView({
   );
 
   const anyFilter =
-    filters.nb !== 'all' || filters.type !== 'all' || filters.stage !== 'all' || filters.attention;
+    filters.nb !== 'all' || filters.types.length > 0 || filters.stage !== 'all' || filters.attention;
 
   // Recenter + zoom in on a selected prospect (tapped from search / a list).
   // Math.max only ever zooms IN, so tapping a pin you're already close to just

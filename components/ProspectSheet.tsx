@@ -85,6 +85,18 @@ function snapTarget(h: number, vy: number, detents: number[]): number {
   return detents.reduce((a, b) => (Math.abs(b - h) < Math.abs(a - h) ? b : a));
 }
 
+// Scroll the currently-focused field into view within `container` (the sheet's
+// scroller). The marginBottom:kbInset lift puts the scroller's bottom at the
+// keyboard's top, so this reveals the focused input above the keyboard — iOS
+// won't do it reliably for a custom scroller inside a transformed sheet, and
+// AppShell pins window scroll to 0 on focus.
+function scrollActiveIntoView(container: HTMLElement | null) {
+  const a = document.activeElement as HTMLElement | null;
+  if (a && container && container.contains(a)) {
+    requestAnimationFrame(() => a.scrollIntoView({ block: 'center' }));
+  }
+}
+
 export default function ProspectSheet() {
   const { views, selectedId, setSelectedId, save } = useData();
   const view = views.find((v) => v.place_id === selectedId) ?? null;
@@ -189,17 +201,23 @@ export default function ProspectSheet() {
     return () => window.removeEventListener('keydown', onKey);
   }, [view]);
 
-  // Track the keyboard inset (visual-viewport shrink) so the sheet can lift above it.
+  // Track the keyboard inset (visual-viewport shrink) so the sheet can lift above
+  // it, and when the keyboard opens, scroll the focused field above it — the lift
+  // alone leaves the field wherever the scroller happened to be.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
-    const onResize = () => setKbInset(Math.max(0, window.innerHeight - vv.height));
+    const sync = () => setKbInset(Math.max(0, window.innerHeight - vv.height));
+    const onResize = () => {
+      sync();
+      if (window.innerHeight - vv.height > 0) scrollActiveIntoView(contentRef.current);
+    };
     vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
-    onResize();
+    vv.addEventListener('scroll', sync);
+    sync();
     return () => {
       vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
+      vv.removeEventListener('scroll', sync);
     };
   }, []);
 
@@ -394,6 +412,12 @@ export default function ProspectSheet() {
 
             <Box
               ref={contentRef}
+              // Keyboard already open and focus moved to another field: keep it
+              // above the keyboard (a visualViewport resize won't fire when the
+              // keyboard height is unchanged).
+              onFocusCapture={() => {
+                if (kbInset > 0) scrollActiveIntoView(contentRef.current);
+              }}
               sx={{
                 position: 'relative',
                 flex: 1,

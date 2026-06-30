@@ -1,4 +1,4 @@
-import { ICP, ICP_TYPES, NEIGHBORHOODS, TYPE_DENYLIST } from './icp';
+import { ICP_SEARCHES, NEIGHBORHOODS, TYPE_DENYLIST } from './icp';
 import type { Prospect, IcpType, Neighborhood } from './types';
 
 const FIELDS = [
@@ -31,13 +31,12 @@ export async function pullProspects(
   let queriesRun = 0;
 
   for (const nb of NEIGHBORHOODS) {
-    for (const type of ICP_TYPES) {
-      const cfg = ICP[type];
+    for (const spec of ICP_SEARCHES) {
       try {
         const { places } = await Place.searchByText({
-          textQuery: cfg.query,
+          textQuery: spec.query,
           fields: FIELDS,
-          includedType: cfg.includedType,
+          includedType: spec.includedType,
           locationRestriction: nb.bounds,
           maxResultCount: 20,
           useStrictTypeFiltering: false,
@@ -47,13 +46,13 @@ export async function pullProspects(
         queriesRun++;
 
         for (const p of places ?? []) {
-          const prospect = toProspect(p, type, nb.name);
+          const prospect = toProspect(p, spec.type, nb.name);
           if (prospect && !byId.has(prospect.place_id)) {
             byId.set(prospect.place_id, prospect);
           }
         }
       } catch (e) {
-        errors.push(`${type} / ${nb.name}: ${(e as Error).message}`);
+        errors.push(`${spec.type} / ${nb.name}: ${(e as Error).message}`);
       }
     }
   }

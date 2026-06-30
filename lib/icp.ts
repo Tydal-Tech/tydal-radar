@@ -1,18 +1,30 @@
 import type { IcpType, Neighborhood } from './types';
 
-// Ideal Customer Profile: each type maps to a Places text query + an
-// `includedType` (a Places "Table A" type) to keep results on-target.
-export const ICP: Record<
-  IcpType,
-  { label: string; query: string; includedType: string }
-> = {
-  daycare: { label: 'Daycare', query: 'garderie CPE daycare', includedType: 'child_care_agency' },
-  dental: { label: 'Dental', query: 'dental clinic dentist', includedType: 'dentist' },
-  gym: { label: 'Gym', query: 'gym fitness studio', includedType: 'gym' },
-  office: { label: 'Office / Clinic', query: 'medical clinic office', includedType: 'doctor' },
+// Display metadata per ICP type. Search queries live in ICP_SEARCHES below —
+// `office` is several searches merged, so it has no single query of its own.
+export const ICP: Record<IcpType, { label: string }> = {
+  daycare: { label: 'Daycare' },
+  dental: { label: 'Dental' },
+  gym: { label: 'Gym' },
+  office: { label: 'Office' },
+  veterinary: { label: 'Veterinary' },
 };
 
 export const ICP_TYPES = Object.keys(ICP) as IcpType[];
+
+// Each entry is one Places text search, tagged with the `type` bucket it fills,
+// using an `includedType` (a Places "Table A" type) to stay on-target. `office`
+// is intentionally several searches (lawyer / accounting / real estate) merged
+// into ONE bucket — no separate labels or subtypes — matching radar-grid-scrape.js.
+export const ICP_SEARCHES: { type: IcpType; query: string; includedType: string }[] = [
+  { type: 'daycare', query: 'garderie CPE daycare', includedType: 'child_care_agency' },
+  { type: 'dental', query: 'dental clinic dentist', includedType: 'dentist' },
+  { type: 'gym', query: 'gym fitness studio', includedType: 'gym' },
+  { type: 'veterinary', query: 'veterinary clinic vet animal hospital', includedType: 'veterinary_care' },
+  { type: 'office', query: 'law firm lawyer attorney', includedType: 'lawyer' },
+  { type: 'office', query: 'accounting firm accountant CPA', includedType: 'accounting' },
+  { type: 'office', query: 'real estate agency realtor broker', includedType: 'real_estate_agency' },
+];
 
 // Vertical glyph per ICP type (same set the map pins use), for list rows.
 export const ICP_EMOJI: Record<IcpType, string> = {
@@ -20,6 +32,7 @@ export const ICP_EMOJI: Record<IcpType, string> = {
   dental: '🦷',
   gym: '🏋️',
   office: '🏢',
+  veterinary: '🐾',
 };
 
 // Approximate bounding boxes for each target Montreal neighborhood. Used as the

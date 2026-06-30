@@ -1,6 +1,6 @@
 import type { Stage } from './stages';
 
-export type IcpType = 'daycare' | 'dental' | 'gym' | 'office';
+export type IcpType = 'daycare' | 'dental' | 'gym' | 'office' | 'veterinary';
 
 export type Neighborhood =
   | 'Ville-Marie'

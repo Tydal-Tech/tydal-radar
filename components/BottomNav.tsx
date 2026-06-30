@@ -25,16 +25,15 @@ export default function BottomNav({
 }) {
   return (
     // Uber-style solid dark bar: full-bleed, flush to the bottom edge (fills the
-    // home-indicator area via the safe-area pad). The map ends at this bar's top
-    // (AppShell uses --nav-total) so Google's attribution stays visible just
-    // above it. Condenses (labels collapse, bar shrinks) while a list scrolls.
+    // home-indicator area via the safe-area pad). It's the last flex item in the
+    // shell column and takes its natural height; the map area flexes to meet its
+    // top, so Google's attribution stays visible just above it. Condenses (labels
+    // collapse, bar shrinks) while a list scrolls — the map re-flexes to match.
     <Paper
       elevation={0}
       sx={{
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
+        position: 'relative',
+        flexShrink: 0,
         zIndex: 1200,
         borderRadius: 0,
         overflow: 'hidden',

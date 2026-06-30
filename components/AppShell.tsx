@@ -91,74 +91,75 @@ function ShellInner() {
         width: '100%',
         overflow: 'hidden',
         bgcolor: 'background.default',
+        // Flex column: the map area (flex:1) stretches to the nav's REAL top
+        // edge, so it always fills the space above the bar on iOS regardless of
+        // the dynamic viewport / home-indicator safe area — no fixed height and
+        // no reliance on a guessed --nav-total for the map's bottom.
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      {/* Content fills the screen; the nav floats over it (full-bleed map). */}
-      <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-        {/* Keep the map mounted across tabs so it never re-initializes. Visible
-            for Map AND Search — search opens as a sheet OVER the map (Apple Maps
-            pattern). Ends at the bottom bar's top (--nav-total) so Google's
-            attribution stays visible above the flush bar. */}
-        <Box
-          sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 'var(--nav-total)',
-            display: 'block',
-          }}
-        >
-          <MapView
-            onOpenAnalytics={() => setTab((c) => (c === 'analytics' ? 'map' : 'analytics'))}
-          />
-        </Box>
-        {/* Search, Follow-ups and Contracts are all pull-up sheets OVER the map
-            (same concept as the prospect card): a shared dim scrim + a sliding
-            sheet. Tapping the scrim closes back to the map. */}
-        <AnimatePresence>
-          {(tab === 'search' ||
-            tab === 'followups' ||
-            tab === 'contracts' ||
-            tab === 'analytics') && (
-            <motion.div
-              key="sheet-scrim"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.22 }}
-              onClick={() => setTab('map')}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 'var(--nav-total)',
-                background: 'rgba(0,0,0,0.32)',
-                zIndex: 1090,
-              }}
-            />
-          )}
-          {tab === 'search' && (
-            <SearchOverlay key="search" onClose={() => setTab('map')} onScroll={onListScroll} />
-          )}
-          {tab === 'followups' && (
-            <FollowUps key="followups" onOpen={() => setTab('map')} onScroll={onListScroll} />
-          )}
-          {tab === 'contracts' && (
-            <Contracts key="contracts" onOpen={() => setTab('map')} onScroll={onListScroll} />
-          )}
-          {tab === 'analytics' && (
-            <Analytics key="analytics" onClose={() => setTab('map')} onScroll={onListScroll} />
-          )}
-        </AnimatePresence>
+      {/* Map area — flex:1 stretches it to fill everything above the nav. Kept
+          mounted across tabs so it never re-initializes; visible for Map AND
+          Search (search opens as a sheet OVER the map, Apple Maps pattern). The
+          map ends exactly at the nav's top, so Google's attribution stays
+          visible just above the bar. */}
+      <Box sx={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <MapView
+          onOpenAnalytics={() => setTab((c) => (c === 'analytics' ? 'map' : 'analytics'))}
+        />
       </Box>
+
+      {/* Solid bar at the bottom of the column; takes its natural height (incl.
+          the home-indicator safe-area pad). The map flexes to meet its top. */}
       <BottomNav
         value={tab}
         onChange={(t) => setTab((cur) => (cur === t && t !== 'map' ? 'map' : t))}
         followUpCount={followUpCount}
         condensed={navCondensed}
       />
+
+      {/* Search, Follow-ups, Contracts and Analytics are pull-up sheets OVER the
+          map (same concept as the prospect card): a shared dim scrim + a sliding
+          sheet. They overlay the whole shell (the positioned ancestor) and
+          anchor just above the nav via --nav-total. Tapping the scrim returns to
+          the map. */}
+      <AnimatePresence>
+        {(tab === 'search' ||
+          tab === 'followups' ||
+          tab === 'contracts' ||
+          tab === 'analytics') && (
+          <motion.div
+            key="sheet-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            onClick={() => setTab('map')}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 'var(--nav-total)',
+              background: 'rgba(0,0,0,0.32)',
+              zIndex: 1090,
+            }}
+          />
+        )}
+        {tab === 'search' && (
+          <SearchOverlay key="search" onClose={() => setTab('map')} onScroll={onListScroll} />
+        )}
+        {tab === 'followups' && (
+          <FollowUps key="followups" onOpen={() => setTab('map')} onScroll={onListScroll} />
+        )}
+        {tab === 'contracts' && (
+          <Contracts key="contracts" onOpen={() => setTab('map')} onScroll={onListScroll} />
+        )}
+        {tab === 'analytics' && (
+          <Analytics key="analytics" onClose={() => setTab('map')} onScroll={onListScroll} />
+        )}
+      </AnimatePresence>
       <ProspectSheet />
     </Box>
     </SheetHeightContext.Provider>

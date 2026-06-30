@@ -31,17 +31,25 @@ const REFERER = 'http://localhost:3000/';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
+// Optional: limit the run to specific buckets, e.g. `--only=medical` or
+// `--only=office,medical`. Lets you scrape one category citywide without
+// re-burning Places quota on the others. No flag = every search.
+const onlyArg = process.argv.find((a) => a.startsWith('--only='));
+const ONLY = onlyArg
+  ? new Set(onlyArg.slice('--only='.length).split(',').map((s) => s.trim()).filter(Boolean))
+  : null;
+
 // Search specs — one Places Text Search each, tagged with the `type` bucket it
-// writes to. Queries mirror lib/icp.ts; veterinary added. NOTE: `office` is
-// deliberately SEVERAL searches (lawyer / accounting / real estate) merged into
-// ONE bucket — no separate labels or subtypes. This replaces the old medical
-// 'medical clinic office'/doctor query (which returned a noisy ~83); `office`
-// now means professional offices.
+// writes to. Queries mirror lib/icp.ts. `office` is deliberately SEVERAL searches
+// (lawyer / accounting / real estate) merged into ONE bucket — no subtypes.
+// `medical` (clinics/doctors) is its own bucket, listed BEFORE office so a place
+// matching both is deduped as medical (global place_id dedup, first search wins).
 const SEARCHES = [
   { type: 'daycare',    query: 'garderie CPE daycare',                  includedType: 'child_care_agency' },
   { type: 'dental',     query: 'dental clinic dentist',                 includedType: 'dentist' },
   { type: 'gym',        query: 'gym fitness studio',                    includedType: 'gym' },
   { type: 'veterinary', query: 'veterinary clinic vet animal hospital', includedType: 'veterinary_care' },
+  { type: 'medical',    query: 'medical clinic doctor walk-in',         includedType: 'doctor' },
   // office bucket — professional offices, all merged under type 'office':
   { type: 'office',     query: 'law firm lawyer attorney',              includedType: 'lawyer' },
   { type: 'office',     query: 'accounting firm accountant CPA',        includedType: 'accounting' },
@@ -169,10 +177,15 @@ async function main() {
   if (!SUPABASE_URL || !SUPABASE_KEY) { console.error('Missing Supabase URL/key'); process.exit(1); }
 
   const cells = buildCells();
-  const bucketTypes = [...new Set(SEARCHES.map((s) => s.type))];
+  const activeSearches = ONLY ? SEARCHES.filter((s) => ONLY.has(s.type)) : SEARCHES;
+  if (activeSearches.length === 0) {
+    console.error(`--only matched no buckets. Known: ${[...new Set(SEARCHES.map((s) => s.type))].join(', ')}`);
+    process.exit(1);
+  }
+  const bucketTypes = [...new Set(activeSearches.map((s) => s.type))];
   console.log(
-    `Grid: ${cells.length} cells x ${SEARCHES.length} searches/cell = ${cells.length * SEARCHES.length} searches` +
-    ` (${bucketTypes.length} categories)` +
+    `Grid: ${cells.length} cells x ${activeSearches.length} searches/cell = ${cells.length * activeSearches.length} searches` +
+    ` (${bucketTypes.length} categor${bucketTypes.length === 1 ? 'y' : 'ies'}${ONLY ? `: ${bucketTypes.join(', ')}` : ''})` +
     `${DRY_RUN ? '  (DRY RUN — no write)' : ''}`,
   );
 
@@ -184,7 +197,7 @@ async function main() {
 
   for (let i = 0; i < cells.length; i++) {
     const rectangle = cells[i];
-    for (const spec of SEARCHES) {
+    for (const spec of activeSearches) {
       try {
         const places = await searchCell(spec, rectangle);
         searches++;

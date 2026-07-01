@@ -36,8 +36,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 900,
-        temperature: 0.7,
+        max_tokens: 1200,
         system,
         messages: [{ role: 'user', content: user }],
       }),
@@ -54,8 +53,15 @@ export async function POST(req: Request) {
     );
   }
 
-  const data = (await resp.json().catch(() => null)) as { content?: { text?: string }[] } | null;
-  const text = data?.content?.[0]?.text ?? '';
+  const data = (await resp.json().catch(() => null)) as {
+    content?: { type?: string; text?: string }[];
+    stop_reason?: string;
+  } | null;
+  // Sonnet 5 can return non-text blocks first, so pick the text block explicitly.
+  const text = (data?.content ?? []).find((b) => b?.type === 'text')?.text ?? '';
+  if (!text) {
+    return NextResponse.json({ error: 'The AI returned an empty response' }, { status: 502 });
+  }
   try {
     return NextResponse.json(parsePitch(text));
   } catch {

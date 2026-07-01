@@ -77,7 +77,16 @@ export function parsePitch(text: string): AiPitch {
       .replace(/```\s*$/, '')
       .trim();
   }
-  const obj = JSON.parse(s) as Record<string, unknown>;
+  let obj: Record<string, unknown>;
+  try {
+    obj = JSON.parse(s) as Record<string, unknown>;
+  } catch {
+    // Claude sometimes wraps the JSON in prose — grab the outermost { ... }.
+    const start = s.indexOf('{');
+    const end = s.lastIndexOf('}');
+    if (start === -1 || end <= start) throw new Error('no JSON object in AI response');
+    obj = JSON.parse(s.slice(start, end + 1)) as Record<string, unknown>;
+  }
   const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
   const opener = str(obj.opener);
   if (!opener) throw new Error('AI pitch missing an opener');

@@ -55,6 +55,10 @@ describe('parsePitch', () => {
     expect(parsePitch('```json\n' + good + '\n```').opener).toMatch(/cleaning/);
   });
 
+  it('extracts the JSON even when Claude wraps it in prose', () => {
+    expect(parsePitch('Here is your pitch:\n' + good + '\n\nGood luck!').opener).toMatch(/cleaning/);
+  });
+
   it('drops malformed rebuttals and caps at 3', () => {
     const p = parsePitch(
       JSON.stringify({

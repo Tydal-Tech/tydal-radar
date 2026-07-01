@@ -10,10 +10,10 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import ClusteredMarkers from './ClusteredMarkers';
 import DemandHeatmap from './DemandHeatmap';
-import FilterPanel, { type Filters } from './FilterPanel';
+import FilterPanel from './FilterPanel';
 import { useData } from './DataProvider';
 import { useGeolocation } from '@/lib/useGeolocation';
-import { isUrgent } from '@/lib/contracts';
+import { type Filters, EMPTY_FILTERS, matchesFilters, anyActiveFilter } from '@/lib/filters';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
 import { glassSx } from '@/lib/glass';
 import { motion, useTransform, motionValue } from 'framer-motion';
@@ -28,12 +28,7 @@ export default function MapView({
 }) {
   const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
     useData();
-  const [filters, setFilters] = useState<Filters>({
-    nb: 'all',
-    types: [],
-    stage: 'all',
-    attention: false,
-  });
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
   const [heatmapOn, setHeatmapOn] = useState(true);
   const [pullMsg, setPullMsg] = useState<string | null>(null);
@@ -49,20 +44,9 @@ export default function MapView({
   const sheetHeight = useSheetHeight() ?? fallbackHeight;
   const fabY = useTransform(sheetHeight, (h) => -Math.max(0, h - 12));
 
-  const filtered = useMemo(
-    () =>
-      views.filter(
-        (v) =>
-          (filters.nb === 'all' || v.neighborhood === filters.nb) &&
-          (filters.types.length === 0 || filters.types.includes(v.type)) &&
-          (filters.stage === 'all' || v.stage === filters.stage) &&
-          (!filters.attention || isUrgent(v)),
-      ),
-    [views, filters],
-  );
+  const filtered = useMemo(() => views.filter((v) => matchesFilters(v, filters)), [views, filters]);
 
-  const anyFilter =
-    filters.nb !== 'all' || filters.types.length > 0 || filters.stage !== 'all' || filters.attention;
+  const anyFilter = anyActiveFilter(filters);
 
   // Recenter + zoom in on a selected prospect (tapped from search / a list).
   // Math.max only ever zooms IN, so tapping a pin you're already close to just

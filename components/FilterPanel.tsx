@@ -6,6 +6,7 @@ import { NEIGHBORHOODS, ICP, ICP_TYPES } from '@/lib/icp';
 import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '@/lib/stages';
 import { isUrgent } from '@/lib/contracts';
 import type { IcpType, ProspectView } from '@/lib/types';
+import { type Filters, EMPTY_FILTERS, anyActiveFilter } from '@/lib/filters';
 
 const NB_SHORT: Record<string, string> = {
   'Ville-Marie': 'Ville-Marie',
@@ -13,13 +14,6 @@ const NB_SHORT: Record<string, string> = {
   'Plateau-Mont-Royal': 'Plateau',
   'Côte-des-Neiges–NDG': 'CDN–NDG',
 };
-
-export interface Filters {
-  nb: string | 'all';
-  types: IcpType[]; // selected ICP types; empty = all types (multi-select)
-  stage: Stage | 'all';
-  attention: boolean; // only prospects with a due follow-up / expiring contract
-}
 
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
@@ -77,7 +71,7 @@ export default function FilterPanel({
         v.stage === s,
     ).length;
 
-  const anyActive = nb !== 'all' || types.length > 0 || stage !== 'all' || attention;
+  const anyActive = anyActiveFilter(filters);
   const urgentCount = views.filter(isUrgent).length;
 
   return (
@@ -87,7 +81,7 @@ export default function FilterPanel({
         {anyActive && (
           <Button
             size="small"
-            onClick={() => setFilters({ nb: 'all', types: [], stage: 'all', attention: false })}
+            onClick={() => setFilters(EMPTY_FILTERS)}
             sx={{ color: 'text.secondary', minWidth: 0 }}
           >
             Clear all

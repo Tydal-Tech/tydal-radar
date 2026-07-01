@@ -24,6 +24,7 @@ Loop memory for the autonomous improvement campaign. Newest entries on top.
 8. Route/day planning across filtered prospects.
 
 ## Log
+- 2026-06-30 — Extracted the prospect filter model + predicate to `lib/filters.ts` (`Filters`, `EMPTY_FILTERS`, `anyActiveFilter`, `matchesFilters`); MapView + FilterPanel now import it (removes the inline predicate + duplicated empty/any-active literals). +12 tests (148 total). Lint 8 (steady), tsc + build green.
 - 2026-06-30 — react-hooks/refs (latest-value assigns): moved `ref.current = x` out of render into an effect in ClusteredMarkers (views/selected/onSelect), SheetShell + ProspectSheet (atFull). Verified readers run only in async handlers / later effects, so ordering is preserved. Lint 13→8 errors. Tests 136, tsc, build green. Remaining 8 = `set-state-in-effect` (legitimate patterns) — left as-is, NOT downgrading the rule to fake green.
 - 2026-06-30 — react-hooks/refs: AppShell + MapView shared MotionValue now via lazy `useState(() => motionValue(0))` instead of `useRef(...).current` (identical stable instance, no gesture-logic change). Lint 15→13 errors. Tests 136, tsc, build green. Next: remaining refs (latest-value assigns in ClusteredMarkers/SheetShell/ProspectSheet → move to effect), then set-state-in-effect case review.
 - (campaign start) Created CHANGELOG.md + this file. Baseline captured above.

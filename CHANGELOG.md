@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 ## [Unreleased]
 
 ### Added
+- Canvassing efficiency (uses your GPS location, one shared watcher): Search results sort nearest-first; distance to each prospect shows on Search/Follow-up rows and the prospect card; a "Near me · not knocked" one-tap filter surfaces unworked prospects within ~1 km; and tapping a stage chip on the card now saves+closes in one tap (except "lost", which still asks for a reason).
 - Accessibility: the Search / Follow-ups / Contracts / Stats pull-up sheets and the prospect card are now proper labelled dialogs (`role="dialog"`, `aria-modal`, `aria-label`) and dismiss on the Escape key.
 - Offline-first: prospects/pipeline are mirrored in IndexedDB and render instantly (stale-while-revalidate when online); prospect edits save optimistically to a local outbox and sync to Supabase on reconnect/foreground, so edits made in a dead zone are never lost. A top-left status pill shows offline / pending-count / syncing state (hidden when synced).
 - Citywide grid scraper (`radar-grid-scrape.js`) — tiles Montreal into ~2.2 km cells to beat Google Places' 60-result/search cap; `--only=<types>` flag for targeted runs.

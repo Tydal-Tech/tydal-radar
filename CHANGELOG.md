@@ -33,6 +33,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 - `office` now means professional services (lawyer / accounting / real estate), merged into one bucket.
 
 ### Fixed
+- Hydration mismatch on every load: `isOnline()` used `typeof navigator === 'undefined'` to detect the server, but Node 18+ defines a global `navigator` without `onLine`, so the server rendered the offline `SyncStatus` pill while the client rendered nothing — React then threw away and regenerated the tree. Now guards on `navigator.onLine` being a boolean.
+- Flaky dev server: a stray parent-dir lockfile made Turbopack infer the wrong workspace root and mis-resolve modules (e.g. `@mui/material-nextjs`) after cache invalidation. Pinned `turbopack.root` in `next.config.ts`.
 - iOS PWA map dead-zone: the map now flex-fills the space above the tab bar.
 - Prospect fetch loaded only the first 1000 rows (PostgREST cap); now paginated.
 - Notes/fields in the prospect sheet sat behind the iOS keyboard; now scrolled into view above it.

@@ -66,7 +66,10 @@ export function useData() {
 const toMap = (rows: Pipeline[]): Record<string, Pipeline> =>
   Object.fromEntries(rows.map((row) => [row.place_id, row]));
 
-const isOnline = () => typeof navigator === 'undefined' || navigator.onLine;
+// Note: Node 18+ (SSR) defines a global `navigator` WITHOUT `onLine`, so guard
+// on the property, not on `navigator` existing — otherwise the server defaults
+// to "offline" and hydration mismatches the (online) client on first paint.
+const isOnline = () => typeof navigator?.onLine !== 'boolean' || navigator.onLine;
 
 export default function DataProvider({ children }: { children: React.ReactNode }) {
   const placesLib = useMapsLibrary('places');

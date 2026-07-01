@@ -245,10 +245,16 @@ Pure period/aggregation math is **unit-tested** with fixture rows.
 ## 6. Alerts (reuse Web Push)
 
 After a run logs, check each budgeted scope's spend %. On crossing **80%** and
-**100%** of a cap (once per period, tracked via a `meta` marker or a tiny
-`agent_alerts` row), send a push through the existing VAPID + `push_subscriptions`
-pipeline: *"Revenue dept at 100% of today's $5 cap — runs blocked."* Blocked
-runs (§4) always push. Keep it throttled so one busy hour doesn't spam.
+**100%** of a cap, send a push through the existing VAPID + `push_subscriptions`
+pipeline: *"Revenue dept at 100% of today's $5 cap — runs blocked."*
+
+**As built:** the alert fires on the *transition* — the single run whose cost
+takes a scope from under a mark to at/over it (`thresholdsCrossed`,
+`spentBefore < mark ≤ spentAfter`). That fires each threshold **exactly once per
+period** with no dedup table (`meta`/`agent_alerts`) needed, and it's the natural
+throttle: no per-blocked-run pushes to spam a busy hour. It's scheduled *after*
+the response via Next `after()`, so it never adds latency, and is fully
+best-effort (`lib/serverPush.ts` no-ops when VAPID is unconfigured).
 
 ---
 
@@ -302,15 +308,17 @@ lockdown. Never log secrets into `meta`/`error` (per `AGENTS.md`).
 
 ## 10. Build checklist (in order)
 
-- [ ] Run the §2 migration in Supabase (tables + RLS + seed caps). *(human)*
-- [ ] `lib/pricing.ts` + tests.
-- [ ] `lib/agentBudget.ts` (periodStart / periodSpend / budgetStatus) + tests.
-- [ ] `lib/runAgent.ts` wrapper.
-- [ ] Retrofit `app/api/ai/pitch/route.ts` to run through `runAgent`.
-- [ ] `app/api/ops/summary/route.ts` (gated, service-role).
-- [ ] `/ops` dashboard page (budget bars · live · recent · errors · top spenders).
-- [ ] Threshold push alerts (reuse VAPID). *(can ship last)*
-- [ ] Log to `CHANGELOG.md` + `TYDAL_PROGRESS.md`.
+- [ ] Run the §2 migration in Supabase (tables + RLS + seed caps). *(human — still pending)*
+- [x] `lib/pricing.ts` + tests.
+- [x] `lib/agentBudget.ts` (periodStart / periodSpend / budgetStatus) + tests.
+- [x] `lib/runAgent.ts` wrapper.
+- [x] Retrofit `app/api/ai/pitch/route.ts` to run through `runAgent`.
+- [x] `app/api/ops/summary/route.ts` (gated, service-role).
+- [x] `/ops` dashboard page (budget bars · live · recent · errors · top spenders).
+- [x] Threshold push alerts (reuse VAPID). Transition-based (fires once when spend
+      crosses 80%/100%), scheduled post-response via Next `after()` — no dedup table,
+      inherently throttled. Implemented in `lib/serverPush.ts` + `runAgent`.
+- [x] Log to `CHANGELOG.md` + `TYDAL_PROGRESS.md`.
 
 ## 11. Cost of Phase 0 itself
 

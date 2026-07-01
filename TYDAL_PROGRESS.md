@@ -2,6 +2,13 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Phase 1 spec — Engineering + Revenue (2026-07-01)
+- Wrote `docs/phase-1-eng-revenue.md` — hires the org's first four agents whose substrate already exists: Eng (Maintenance Haiku, Feature Sonnet → PR→you merge, run in GitHub Actions via Claude Code) + Revenue (Pitch Writer, Pipeline Steward → in-app via `runAgent`).
+- Key design: **one meter, two doors.** In-process agents keep using `runAgent`; external (Actions) agents budget-precheck + ingest via two new token-gated ops routes (`/api/ops/precheck`, `/api/ops/ingest`) that reuse `costOf` + `agent_budgets`. Refactor extracts a shared `logRun()` so both paths write identical `agent_runs` rows — no drift.
+- Fills the Phase-0-reserved approvals slot: an `agent_tasks` table (RLS-locked) → an `/ops` approvals lane (PRs awaiting merge + escalations). No outbound messages in Phase 1 (Outreach/Proposal writers deferred); no agent pushes to `main`.
+- Prereqs (human): Phase 0 live (migration run), `ANTHROPIC_API_KEY` as an Actions secret, a new `OPS_INGEST_SECRET`. Lean tier (~$10–30/mo), all metered from the first run. Spec only — nothing built.
+- Note: drafted on branch `docs/phase-1-spec` (own PR, base `main`); may need a trivial CHANGELOG/progress merge behind the Phase 0 build PR — merge Phase 0 first.
+
 ## Phase 0 spec — observability & budgets (2026-07-01)
 - Wrote `docs/phase-0-observability.md` — the CFO layer, buildable to the codebase's conventions (service-role routes via `lib/serverDb.ts`, gated reads, push alerts, CI/preview).
 - Design: two RLS-locked tables (`agent_runs`, `agent_budgets`); `lib/pricing.ts` `costOf()` (Haiku 1/5, Sonnet5 2/10 intro→3/15, Opus 5/25, cache 0.1×/1.25×); `lib/agentBudget.ts` (periodSpend/budgetStatus); `lib/runAgent.ts` seam (budget pre-check → run → capture `usage` → cost → log → threshold push). First customer = retrofit `/api/ai/pitch`. Cockpit = `/api/ops/summary` (gated) + `/ops` page.

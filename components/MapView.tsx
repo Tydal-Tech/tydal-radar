@@ -8,6 +8,7 @@ import MyLocationIcon from '@mui/icons-material/MyLocation';
 import TuneIcon from '@mui/icons-material/Tune';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
+import RouteIcon from '@mui/icons-material/Route';
 import ClusteredMarkers from './ClusteredMarkers';
 import DemandHeatmap from './DemandHeatmap';
 import SyncStatus from './SyncStatus';
@@ -24,8 +25,10 @@ const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
 export default function MapView({
   onOpenAnalytics,
+  onOpenRoute,
 }: {
   onOpenAnalytics?: () => void;
+  onOpenRoute?: () => void;
 }) {
   const {
     views,
@@ -208,6 +211,26 @@ export default function MapView({
           y: fabY,
         }}
       >
+      {/* Route — opens "Plan my walk" (nearest unworked prospects, in order). */}
+      <Fab
+        aria-label="Plan route"
+        size="medium"
+        onClick={onOpenRoute}
+        sx={{
+          position: 'absolute',
+          right: 16,
+          bottom: 324,
+          zIndex: 1000,
+          bgcolor: 'background.paper',
+          color: 'text.primary',
+          ...glassSx,
+          pointerEvents: 'auto',
+          '&:hover': { bgcolor: 'background.paper' },
+        }}
+      >
+        <RouteIcon />
+      </Fab>
+
       {/* Stats — opens the Analytics sheet. Icon-only round control matching the
           other right-edge FABs; sits at the top of the stack and rides the lift. */}
       <Fab

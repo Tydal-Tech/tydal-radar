@@ -11,6 +11,7 @@ import FollowUps from './FollowUps';
 import Contracts from './Contracts';
 import SearchOverlay from './SearchOverlay';
 import Analytics from './Analytics';
+import RoutePlanner from './RoutePlanner';
 import ProspectSheet from './ProspectSheet';
 import { GeolocationProvider } from './GeolocationProvider';
 import { SheetHeightContext } from './SheetHeightContext';
@@ -108,6 +109,7 @@ function ShellInner() {
       <Box sx={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <MapView
           onOpenAnalytics={() => setTab((c) => (c === 'analytics' ? 'map' : 'analytics'))}
+          onOpenRoute={() => setTab((c) => (c === 'route' ? 'map' : 'route'))}
         />
       </Box>
 
@@ -129,7 +131,8 @@ function ShellInner() {
         {(tab === 'search' ||
           tab === 'followups' ||
           tab === 'contracts' ||
-          tab === 'analytics') && (
+          tab === 'analytics' ||
+          tab === 'route') && (
           <motion.div
             key="sheet-scrim"
             initial={{ opacity: 0 }}
@@ -159,6 +162,9 @@ function ShellInner() {
         )}
         {tab === 'analytics' && (
           <Analytics key="analytics" onClose={() => setTab('map')} onScroll={onListScroll} />
+        )}
+        {tab === 'route' && (
+          <RoutePlanner key="route" onClose={() => setTab('map')} onScroll={onListScroll} />
         )}
       </AnimatePresence>
       <ProspectSheet />

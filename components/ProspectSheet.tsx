@@ -36,13 +36,18 @@ import {
 } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
 import { parseExpiry } from '@/lib/contracts';
-import { leadScore, isNewlyOpened } from '@/lib/score';
+import { isNewlyOpened } from '@/lib/score';
 import { buildIndex, coLocation } from '@/lib/buildings';
 import { underwrite } from '@/lib/underwriting';
 import { bestKnockTime } from '@/lib/timing';
 import { pitch } from '@/lib/pitch';
 import { expansionTargets } from '@/lib/expansion';
-import { sameTypeNearby } from '@/lib/corridor';
+import {
+  generatePitch,
+  cachedPitch,
+  type AiPitch,
+  type PitchSignals,
+} from '@/lib/aiPitch';
 import { openDirections } from '@/lib/directions';
 import { SPRING_SHEET } from '@/lib/motion';
 import { cssPx } from '@/lib/measure';
@@ -121,7 +126,6 @@ export default function ProspectSheet() {
     () => (view && view.stage === 'client' ? expansionTargets(view, views) : null),
     [view, views],
   );
-  const corridor = useMemo(() => (view ? sameTypeNearby(view, views) : []), [view, views]);
 
   const [stage, setStage] = useState<Stage>('not_knocked');
   const [note, setNote] = useState('');
@@ -132,6 +136,10 @@ export default function ProspectSheet() {
   const [lostReason, setLostReason] = useState<LostReason | ''>('');
   const [saving, setSaving] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  // AI pitch (Claude via /api/ai/pitch); cached locally so re-opening is instant.
+  const [aiPitch, setAiPitch] = useState<AiPitch | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   // Content scrolls only once fully expanded (iOS Maps); locked at peek/half.
   const [atFull, setAtFull] = useState(false);
   // Keyboard height (visual-viewport shrink) — lifts the sheet above the iOS
@@ -169,8 +177,36 @@ export default function ProspectSheet() {
       setFollowUp(view.follow_up_date ?? '');
       setLostReason((view.lost_reason as LostReason) || '');
       setConfirmClear(false);
+      setAiPitch(cachedPitch(view.place_id));
+      setAiError(null);
     }
   }, [view]);
+
+  // Signals fed to Claude for the pitch (grounded in this prospect's data).
+  const aiSignals: PitchSignals | null = view && {
+    name: view.name,
+    typeLabel: ICP[view.type as IcpType].label,
+    neighborhood: view.neighborhood,
+    rating: view.rating,
+    reviews: view.user_rating_count,
+    incumbent: view.current_provider,
+    newlyOpened: isNewlyOpened(view.first_seen),
+    building: co?.known ? (co.soleOccupant ? 'sole' : 'shared') : 'unknown',
+    hasWebsite: !!view.website,
+  };
+
+  async function draftPitch() {
+    if (!view || !aiSignals) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      setAiPitch(await generatePitch(view.place_id, aiSignals));
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : 'AI request failed');
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   // Measure the three detents and open at the peek.
   useIsoLayout(() => {
@@ -536,24 +572,6 @@ export default function ProspectSheet() {
                       fontWeight: 600,
                     }}
                   />
-                  {(() => {
-                    const score = leadScore(view).score;
-                    const color =
-                      score >= 60 ? '#ff6b35' : score >= 40 ? '#f9ab00' : 'rgba(255,255,255,0.45)';
-                    return (
-                      <Chip
-                        size="small"
-                        label={`Lead ${score}`}
-                        title="Lead score (higher = work first)"
-                        sx={{
-                          bgcolor: 'transparent',
-                          border: `1px solid ${color}`,
-                          color,
-                          fontWeight: 700,
-                        }}
-                      />
-                    );
-                  })()}
                   {uw && (
                     <Chip
                       size="small"
@@ -629,35 +647,75 @@ export default function ProspectSheet() {
                     border: '1px solid rgba(52,199,89,0.25)',
                   }}
                 >
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, mb: 0.5 }}>
-                    Playbook
-                  </Typography>
+                  <Stack
+                    direction="row"
+                    sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}
+                  >
+                    <Typography sx={{ fontSize: '0.95rem', fontWeight: 700 }}>Playbook</Typography>
+                    <Button
+                      size="small"
+                      onClick={draftPitch}
+                      disabled={aiLoading}
+                      sx={{ minWidth: 0, textTransform: 'none', color: 'primary.main' }}
+                    >
+                      {aiLoading ? 'Drafting…' : aiPitch ? '↻ Regenerate' : '✨ Draft with AI'}
+                    </Button>
+                  </Stack>
                   {knock && (
                     <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
                       🕑 Best time: <b>{knock.window}</b> — {knock.why}
                     </Typography>
                   )}
-                  {corridor.length > 0 && (
-                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
-                      📍 {corridor.length} more {ICP[view.type as IcpType].label} within ~400 m —
-                      pitch them in one loop
+                  {aiError && (
+                    <Typography sx={{ fontSize: '0.8rem', color: '#ff8a80', mb: 0.5 }}>
+                      {aiError}
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: '0.9rem', fontStyle: 'italic', mb: 0.5 }}>
-                    “{talk.opener}”
-                  </Typography>
-                  {talk.angles.length > 0 && (
-                    <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
-                      {talk.angles.map((a, i) => (
-                        <Typography
-                          key={i}
-                          component="li"
-                          sx={{ fontSize: '0.82rem', color: 'text.secondary' }}
-                        >
-                          {a}
+                  {aiPitch ? (
+                    <>
+                      <Typography sx={{ fontSize: '0.95rem', fontStyle: 'italic', mb: 0.75 }}>
+                        “{aiPitch.opener}”
+                      </Typography>
+                      {aiPitch.leadAngle && (
+                        <Typography sx={{ fontSize: '0.85rem', mb: 0.75 }}>
+                          <b>Lead with:</b> {aiPitch.leadAngle}
                         </Typography>
+                      )}
+                      {aiPitch.askFor && (
+                        <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
+                          🗣 Ask for {aiPitch.askFor}
+                        </Typography>
+                      )}
+                      {aiPitch.rebuttals.map((r, i) => (
+                        <Box key={i} sx={{ mb: 0.75 }}>
+                          <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                            “{r.objection}”
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
+                            → {r.response}
+                          </Typography>
+                        </Box>
                       ))}
-                    </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Typography sx={{ fontSize: '0.9rem', fontStyle: 'italic', mb: 0.5 }}>
+                        “{talk.opener}”
+                      </Typography>
+                      {talk.angles.length > 0 && (
+                        <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
+                          {talk.angles.map((a, i) => (
+                            <Typography
+                              key={i}
+                              component="li"
+                              sx={{ fontSize: '0.82rem', color: 'text.secondary' }}
+                            >
+                              {a}
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                    </>
                   )}
                 </Box>
               )}

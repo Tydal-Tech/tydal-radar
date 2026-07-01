@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { useMapsLibrary } from '@vis.gl/react-google-maps';
@@ -17,7 +18,27 @@ import {
   savePipeline as persistPipeline,
   upsertProspects,
 } from '@/lib/db';
+import {
+  readProspects,
+  readPipeline,
+  writeProspects,
+  writePipeline,
+  putPipeline,
+  enqueue,
+  outboxAll,
+  dequeue,
+} from '@/lib/offline';
 import { pullProspects } from '@/lib/places';
+
+type SavePatch = {
+  stage?: Stage;
+  note?: string | null;
+  contact_name?: string | null;
+  current_provider?: string | null;
+  contract_expiry?: string | null;
+  follow_up_date?: string | null;
+  lost_reason?: string | null;
+};
 
 interface DataContextValue {
   views: ProspectView[];
@@ -25,21 +46,13 @@ interface DataContextValue {
   refreshing: boolean;
   error: string | null;
   lastPull: { added: number; total: number } | null;
+  online: boolean;
+  pending: number; // queued pipeline writes awaiting sync
+  syncing: boolean;
   selectedId: string | null;
   setSelectedId: (id: string | null) => void;
   refresh: () => Promise<void>;
-  save: (
-    placeId: string,
-    patch: {
-      stage?: Stage;
-      note?: string | null;
-      contact_name?: string | null;
-      current_provider?: string | null;
-      contract_expiry?: string | null;
-      follow_up_date?: string | null;
-      lost_reason?: string | null;
-    },
-  ) => Promise<void>;
+  save: (placeId: string, patch: SavePatch) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -49,6 +62,11 @@ export function useData() {
   if (!ctx) throw new Error('useData must be used within DataProvider');
   return ctx;
 }
+
+const toMap = (rows: Pipeline[]): Record<string, Pipeline> =>
+  Object.fromEntries(rows.map((row) => [row.place_id, row]));
+
+const isOnline = () => typeof navigator === 'undefined' || navigator.onLine;
 
 export default function DataProvider({ children }: { children: React.ReactNode }) {
   const placesLib = useMapsLibrary('places');
@@ -60,23 +78,93 @@ export default function DataProvider({ children }: { children: React.ReactNode }
   const [error, setError] = useState<string | null>(null);
   const [lastPull, setLastPull] = useState<{ added: number; total: number } | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [online, setOnline] = useState(isOnline);
+  const [pending, setPending] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+  const flushingRef = useRef(false);
 
-  const loadFromCache = useCallback(async () => {
-    try {
-      const [ps, pl] = await Promise.all([fetchProspects(), fetchPipeline()]);
-      setProspects(ps);
-      setPipelineMap(Object.fromEntries(pl.map((row) => [row.place_id, row])));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+  const refreshPending = useCallback(async () => {
+    setPending((await outboxAll()).length);
   }, []);
 
+  // Push queued pipeline writes to Supabase. Stops on the first failure (still
+  // offline / transient) and retries on the next trigger; the guard prevents
+  // overlapping flushes.
+  const flushOutbox = useCallback(async () => {
+    if (flushingRef.current || !isOnline()) return;
+    flushingRef.current = true;
+    setSyncing(true);
+    try {
+      for (const row of await outboxAll()) {
+        try {
+          await persistPipeline(row);
+          await dequeue(row.place_id);
+        } catch {
+          break;
+        }
+      }
+    } finally {
+      flushingRef.current = false;
+      setSyncing(false);
+      await refreshPending();
+    }
+  }, [refreshPending]);
+
+  // Read the local mirror first (instant, offline-capable), then revalidate from
+  // Supabase when online. Queued (outbox) edits always win over server rows.
+  const load = useCallback(async () => {
+    const [cachedP, cachedPl] = await Promise.all([readProspects(), readPipeline()]);
+    if (cachedP.length) setProspects(cachedP);
+    if (cachedPl.length) setPipelineMap(toMap(cachedPl));
+    setLoading(false);
+    await refreshPending();
+
+    if (!isOnline()) {
+      if (!cachedP.length) setError('Offline — connect once to load prospects.');
+      return;
+    }
+    try {
+      const [ps, pl] = await Promise.all([fetchProspects(), fetchPipeline()]);
+      const queued = await outboxAll();
+      setProspects(ps);
+      setPipelineMap({ ...toMap(pl), ...toMap(queued) });
+      await writeProspects(ps);
+      await writePipeline(pl);
+      for (const row of queued) await putPipeline(row); // keep optimistic rows
+      setError(null);
+      flushOutbox();
+    } catch (e) {
+      if (!cachedP.length) setError((e as Error).message);
+    }
+  }, [refreshPending, flushOutbox]);
+
   useEffect(() => {
-    loadFromCache();
-  }, [loadFromCache]);
+    load();
+  }, [load]);
+
+  // Sync when connectivity returns or the app is foregrounded — iOS has no
+  // Background Sync API, so flushing happens while the app is open.
+  useEffect(() => {
+    const goOnline = () => {
+      setOnline(true);
+      flushOutbox();
+    };
+    const goOffline = () => setOnline(false);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        setOnline(isOnline());
+        flushOutbox();
+      }
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [flushOutbox]);
 
   const refresh = useCallback(async () => {
     if (!placesLib || refreshing) return;
@@ -87,7 +175,7 @@ export default function DataProvider({ children }: { children: React.ReactNode }
       const before = new Set(prospects.map((p) => p.place_id));
       const added = pulled.filter((p) => !before.has(p.place_id)).length;
       await upsertProspects(pulled);
-      await loadFromCache();
+      await load();
       setLastPull({ added, total: pulled.length });
       if (errors.length) setError(`${errors.length} query error(s). ${errors[0]}`);
     } catch (e) {
@@ -95,21 +183,10 @@ export default function DataProvider({ children }: { children: React.ReactNode }
     } finally {
       setRefreshing(false);
     }
-  }, [placesLib, refreshing, prospects, loadFromCache]);
+  }, [placesLib, refreshing, prospects, load]);
 
   const save = useCallback(
-    async (
-      placeId: string,
-      patch: {
-        stage?: Stage;
-        note?: string | null;
-        contact_name?: string | null;
-        current_provider?: string | null;
-        contract_expiry?: string | null;
-        follow_up_date?: string | null;
-        lost_reason?: string | null;
-      },
-    ) => {
+    async (placeId: string, patch: SavePatch) => {
       const prev = pipelineMap[placeId];
       const nextStage = patch.stage ?? prev?.stage ?? 'not_knocked';
       // Stamp stage_updated_at only when the stage actually changes — that's the
@@ -120,9 +197,7 @@ export default function DataProvider({ children }: { children: React.ReactNode }
         stage: nextStage,
         note: patch.note !== undefined ? patch.note : (prev?.note ?? null),
         contact_name:
-          patch.contact_name !== undefined
-            ? patch.contact_name
-            : (prev?.contact_name ?? null),
+          patch.contact_name !== undefined ? patch.contact_name : (prev?.contact_name ?? null),
         current_provider:
           patch.current_provider !== undefined
             ? patch.current_provider
@@ -141,17 +216,16 @@ export default function DataProvider({ children }: { children: React.ReactNode }
           ? new Date().toISOString()
           : (prev?.stage_updated_at ?? null),
       };
-      // Optimistic update
+      // Optimistic: update memory + the durable local mirror + the outbox, then
+      // try to sync. A network/offline failure keeps the edit queued (no
+      // rollback) — it flushes on reconnect.
       setPipelineMap((m) => ({ ...m, [placeId]: next }));
-      try {
-        await persistPipeline(next);
-      } catch (e) {
-        setPipelineMap((m) => ({ ...m, [placeId]: prev }));
-        setError((e as Error).message);
-        throw e;
-      }
+      await putPipeline(next);
+      await enqueue(next);
+      await refreshPending();
+      flushOutbox();
     },
-    [pipelineMap],
+    [pipelineMap, refreshPending, flushOutbox],
   );
 
   const views = useMemo<ProspectView[]>(
@@ -179,6 +253,9 @@ export default function DataProvider({ children }: { children: React.ReactNode }
     refreshing,
     error,
     lastPull,
+    online,
+    pending,
+    syncing,
     selectedId,
     setSelectedId,
     refresh,

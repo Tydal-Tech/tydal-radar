@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 ## [Unreleased]
 
 ### Added
+- Offline-first: prospects/pipeline are mirrored in IndexedDB and render instantly (stale-while-revalidate when online); prospect edits save optimistically to a local outbox and sync to Supabase on reconnect/foreground, so edits made in a dead zone are never lost. Status indicator UI still to come.
 - Citywide grid scraper (`radar-grid-scrape.js`) — tiles Montreal into ~2.2 km cells to beat Google Places' 60-result/search cap; `--only=<types>` flag for targeted runs.
 - `medical` ICP type (clinics/doctors), distinct from professional `office`.
 - `veterinary` ICP type.

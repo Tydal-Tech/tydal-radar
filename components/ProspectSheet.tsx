@@ -115,8 +115,13 @@ export default function ProspectSheet() {
   const uw = view ? underwrite(view, position ?? undefined) : null;
   const knock = view ? bestKnockTime(view.type) : null;
   const talk = view ? pitch(view, co ?? undefined) : null;
-  const expansion = view && view.stage === 'client' ? expansionTargets(view, views) : null;
-  const corridor = view ? sameTypeNearby(view, views) : [];
+  // Memoized: these scan all prospects (O(n)), so without this they'd re-run on
+  // every keystroke in the note/contact fields (this sheet re-renders per input).
+  const expansion = useMemo(
+    () => (view && view.stage === 'client' ? expansionTargets(view, views) : null),
+    [view, views],
+  );
+  const corridor = useMemo(() => (view ? sameTypeNearby(view, views) : []), [view, views]);
 
   const [stage, setStage] = useState<Stage>('not_knocked');
   const [note, setNote] = useState('');

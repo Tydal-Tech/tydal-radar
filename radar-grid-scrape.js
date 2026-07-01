@@ -241,7 +241,11 @@ async function main() {
   // detect openings AND closures. The DB never deletes rows (a closed business
   // just goes stale), so DB backups only ever show growth — this found-set is
   // the true market state to diff against. See scripts/diff-snapshots.mjs.
-  try {
+  // Full runs only: a scoped --only run finds a single category, so its snapshot
+  // would make every other category look "gone" then "new" in the next diff.
+  if (ONLY) {
+    console.log('Skipping market snapshot on a scoped --only run.');
+  } else try {
     fs.mkdirSync('market-snapshots', { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
     const file = path.join('market-snapshots', `market-${stamp}.json`);

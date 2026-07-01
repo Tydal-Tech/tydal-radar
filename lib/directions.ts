@@ -18,17 +18,24 @@ function isIOS(): boolean {
   );
 }
 
-export function openDirections(destination: string) {
+// Pure URL builders for a destination — extracted so they're unit-testable
+// independently of the platform-launch side effects in openDirections.
+export function directionsUrls(destination: string) {
   const enc = encodeURIComponent(destination);
-  const web = `https://www.google.com/maps/dir/?api=1&destination=${enc}`;
+  return {
+    web: `https://www.google.com/maps/dir/?api=1&destination=${enc}`,
+    googleApp: `comgooglemaps://?daddr=${enc}&directionsmode=driving`,
+    appleMaps: `https://maps.apple.com/?daddr=${enc}&dirflg=d`,
+  };
+}
+
+export function openDirections(destination: string) {
+  const { web, googleApp, appleMaps } = directionsUrls(destination);
 
   if (!isIOS()) {
     window.open(web, '_blank', 'noopener');
     return;
   }
-
-  const googleApp = `comgooglemaps://?daddr=${enc}&directionsmode=driving`;
-  const appleMaps = `https://maps.apple.com/?daddr=${enc}&dirflg=d`;
 
   let handled = false;
   const cleanup = () => {

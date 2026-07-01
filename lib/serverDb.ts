@@ -23,3 +23,23 @@ export function serviceClient(): SupabaseClient {
   if (!url || !key) throw new Error('Supabase service credentials are not configured');
   return createClient(url, key, { auth: { persistSession: false } });
 }
+
+// PostgREST caps a select at ~1000 rows, so page through until a short page
+// comes back (same logic the client used to run against the anon endpoint).
+const PAGE = 1000;
+
+export async function fetchAll<T>(table: 'prospects' | 'pipeline'): Promise<T[]> {
+  const db = serviceClient();
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await db
+      .from(table)
+      .select('*')
+      .order('place_id', { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < PAGE) break;
+  }
+  return rows;
+}

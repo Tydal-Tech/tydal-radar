@@ -2,33 +2,19 @@ import { supabase } from './supabaseClient';
 import type { Prospect, Pipeline } from './types';
 import type { PushRow } from './push';
 
-// PostgREST caps a select at ~1000 rows per request, so fetch in pages and
-// concatenate until a short page comes back — otherwise the map silently shows
-// only the first 1000 of N prospects. Ordered by the primary key so paging is
-// stable across requests.
-const PAGE = 1000;
-
-async function fetchAllRows<T>(table: 'prospects' | 'pipeline'): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from(table)
-      .select('*')
-      .order('place_id', { ascending: true })
-      .range(from, from + PAGE - 1);
-    if (error) throw error;
-    rows.push(...((data ?? []) as T[]));
-    if (!data || data.length < PAGE) break;
-  }
-  return rows;
-}
-
+// Reads go through password-gated server routes (service-role key), so the
+// public anon key can be denied all access to prospects/pipeline. The routes
+// handle pagination server-side and return the full array.
 export async function fetchProspects(): Promise<Prospect[]> {
-  return fetchAllRows<Prospect>('prospects');
+  const res = await fetch('/api/data/prospects');
+  if (!res.ok) throw new Error(`Loading prospects failed (${res.status})`);
+  return (await res.json()) as Prospect[];
 }
 
 export async function fetchPipeline(): Promise<Pipeline[]> {
-  return fetchAllRows<Pipeline>('pipeline');
+  const res = await fetch('/api/data/pipeline');
+  if (!res.ok) throw new Error(`Loading pipeline failed (${res.status})`);
+  return (await res.json()) as Pipeline[];
 }
 
 // Writes go through password-gated server routes (service-role key), so the

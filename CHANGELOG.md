@@ -31,7 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 - Multi-select ICP type filter in FilterPanel.
 
 ### Changed
-- Security (write lockdown): prospect + pipeline **writes now go through password-gated server routes** (`/api/data/*`) using the service-role key, so the public anon key can be denied write access (run the SQL in docs/security-writes.md after deploy). Reads/push are unchanged for now; the read lockdown is a later phase.
+- Security (lockdown): prospect + pipeline **reads and writes now go through password-gated server routes** (`/api/data/*`) using the service-role key, so the public anon key can be denied all access to those tables (run the SQL in docs/security-writes.md after deploy). `keepalive` moved to the service-role client too. Push subscriptions remain anon (separate, low-sensitivity table).
 - `office` now means professional services (lawyer / accounting / real estate), merged into one bucket.
 
 ### Fixed

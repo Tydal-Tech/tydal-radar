@@ -35,8 +35,26 @@ drop policy if exists "anon update pipeline"  on public.pipeline;
 If step 2 fails, do **not** run the SQL — roll back the deploy in Vercel and
 report it.
 
-## After this
+## Phase 2 — reads (this branch: `read-lockdown`)
+
+Reads now go through the server too: `GET /api/data/prospects` and
+`GET /api/data/pipeline` (service-role, paginated), and `db.ts`
+`fetchProspects`/`fetchPipeline` call them. `keepalive` moved to the
+service-role client (it read `prospects` via anon before). After this deploys
+and the app is verified loading data, deny the anon key **all** access:
+
+```sql
+drop policy if exists "anon read prospects" on public.prospects;
+drop policy if exists "anon read pipeline"  on public.pipeline;
+```
+
+After that the anon key can neither read nor write `prospects`/`pipeline` — the
+dataset can no longer be scraped with the public key. (Push subscriptions remain
+anon — a separate, low-sensitivity table.)
+
+Order, as before: **deploy → verify the app still loads your prospects → only
+then run the SQL.** If loading breaks, don't run it; roll back the deploy.
+
+## After Phase 1 (writes)
 - Anon key can **read** `prospects`/`pipeline` but **cannot write** them — tampering
   via the public key is closed.
-- Remaining exposure: anon can still **read** (scrape) the dataset. Phase 2 routes
-  reads through the server too; deferred until CI/preview exist to verify safely.

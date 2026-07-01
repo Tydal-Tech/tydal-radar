@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
-import { hasValidSession, serviceClient } from '@/lib/serverDb';
+import { hasValidSession, serviceClient, fetchAll } from '@/lib/serverDb';
 import type { Pipeline } from '@/lib/types';
 
-// Save one prospect's pipeline state. Password-gated + service-role, so the
-// public anon key can be denied write access to `pipeline`.
+// Read + write `pipeline`. Password-gated + service-role, so the public anon key
+// can be denied all access to `pipeline`.
 export const runtime = 'nodejs';
+
+export async function GET() {
+  if (!(await hasValidSession())) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+  try {
+    return NextResponse.json(await fetchAll<Pipeline>('pipeline'));
+  } catch {
+    return NextResponse.json({ error: 'failed to load pipeline' }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   if (!(await hasValidSession())) {

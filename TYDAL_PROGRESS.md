@@ -2,6 +2,16 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Phase 0 BUILT — observability & budgets (the CFO layer) (2026-07-01)
+- The CFO layer is now code, not just spec. Built on `phase-0-observability` branch; tsc + 293 tests + build all green locally.
+- **Pricing** `lib/pricing.ts` — `costOf(model, usage)` single source of truth ($/1M, cache 0.1×/1.25×); computed on write, stored on the row. Unit-tested.
+- **Budgets** `lib/agentBudget.ts` — `periodStart` (UTC day/week/month), `periodSpend`, `budgetStatus` (blocked if global/dept/role cap hit), and pure `thresholdsCrossed` (transition-based 80%/100% alert, once per period, no dedup table needed). Pure math unit-tested.
+- **Seam** `lib/runAgent.ts` — budget pre-check (BudgetError on a real cap hit) → open run → run work → capture usage → cost → close row; on success schedules a post-response threshold push via Next `after()`. Fail-open everywhere except a real cap hit (observability must never take down the product).
+- **Alerts** `lib/serverPush.ts` — server-side Web Push fan-out reusing the follow-up digest's VAPID + `push_subscriptions` (no-op when unconfigured, prunes 404/410). Chose transition-crossing over per-blocked-run pushes to stay throttled without new state.
+- **First employee**: `/api/ai/pitch` retrofitted through `runAgent` (role `pitch-writer`, dept `revenue`); BudgetError → 429. Every pitch now logs real cost.
+- **Cockpit**: `GET /api/ops/summary` (gated, service-role, returns empty cockpit if tables unmigrated) + `/ops` page (spend cards · budget bars green→amber≥80%→red≥100% · live · recent runs · errors · top spenders; auto-refresh 20s). Auto-gated by `proxy.ts`.
+- **Remaining human step**: run the §2 migration (`agent_runs` + `agent_budgets`, RLS-locked, seed caps) in Supabase, then curl-verify a real `agent_runs` row + `/api/ops/summary` aggregation. Ship via branch→PR→CI→preview→merge.
+
 ## Phase 0 spec — observability & budgets (2026-07-01)
 - Wrote `docs/phase-0-observability.md` — the CFO layer, buildable to the codebase's conventions (service-role routes via `lib/serverDb.ts`, gated reads, push alerts, CI/preview).
 - Design: two RLS-locked tables (`agent_runs`, `agent_budgets`); `lib/pricing.ts` `costOf()` (Haiku 1/5, Sonnet5 2/10 intro→3/15, Opus 5/25, cache 0.1×/1.25×); `lib/agentBudget.ts` (periodSpend/budgetStatus); `lib/runAgent.ts` seam (budget pre-check → run → capture `usage` → cost → log → threshold push). First customer = retrofit `/api/ai/pitch`. Cockpit = `/api/ops/summary` (gated) + `/ops` page.

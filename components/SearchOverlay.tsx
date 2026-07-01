@@ -19,6 +19,8 @@ import SheetShell from './SheetShell';
 import { ICP } from '@/lib/icp';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { glassCardSx } from '@/lib/glass';
+import { useGeo } from './GeolocationProvider';
+import { distanceMeters, formatDistance } from '@/lib/geo';
 import type { IcpType } from '@/lib/types';
 
 // Search as a bottom sheet OVER the map (Apple Maps pattern), built on the same
@@ -37,6 +39,7 @@ export default function SearchOverlay({
   onScroll?: () => void;
 }) {
   const { views, setSelectedId } = useData();
+  const { position } = useGeo();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -54,12 +57,16 @@ export default function SearchOverlay({
   const blurKeyboard = () => (document.activeElement as HTMLElement | null)?.blur?.();
 
   const q = query.trim().toLowerCase();
-  const results = q
+  const matched = q
     ? views.filter(
         (v) =>
           v.name.toLowerCase().includes(q) || (v.address ?? '').toLowerCase().includes(q),
       )
     : [];
+  // Nearest first when we have a GPS fix, so the closest matches are on top.
+  const results = position
+    ? [...matched].sort((a, b) => distanceMeters(position, a) - distanceMeters(position, b))
+    : matched;
 
   function openProspect(placeId: string) {
     setSelectedId(placeId);
@@ -133,6 +140,7 @@ export default function SearchOverlay({
                       </Typography>
                       <Typography variant="body2" color="text.secondary" noWrap>
                         {ICP[v.type as IcpType].label} · {v.neighborhood}
+                        {position ? ` · ${formatDistance(distanceMeters(position, v))}` : ''}
                       </Typography>
                       {v.address && (
                         <Typography variant="body2" color="text.secondary" noWrap>

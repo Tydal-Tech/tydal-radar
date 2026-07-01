@@ -22,6 +22,8 @@ import { SPRING_120 } from '@/lib/motion';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
 import { glassSx, glassCardSx } from '@/lib/glass';
+import { useGeo } from './GeolocationProvider';
+import { distanceMeters, formatDistance } from '@/lib/geo';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 const OVERDUE = '#d93025';
@@ -47,6 +49,7 @@ export default function FollowUps({
   onScroll?: () => void;
 }) {
   const { views, setSelectedId, save } = useData();
+  const { position } = useGeo();
   // The CSS prefers-reduced-motion blanket doesn't reach framer's JS springs,
   // so honor it here: render rows at rest (no offset, no stagger, no layout glide).
   const reduceMotion = useReducedMotion();
@@ -148,6 +151,7 @@ export default function FollowUps({
                           </Typography>
                           <Typography variant="body2" color="text.secondary" noWrap>
                             {ICP[v.type as IcpType].label} · {v.neighborhood}
+                            {position ? ` · ${formatDistance(distanceMeters(position, v))}` : ''}
                           </Typography>
                           <Typography
                             variant="body2"

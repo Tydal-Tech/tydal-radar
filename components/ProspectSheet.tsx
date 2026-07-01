@@ -22,6 +22,8 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import DirectionsIcon from '@mui/icons-material/Directions';
 import ClearIcon from '@mui/icons-material/Clear';
 import { useData } from './DataProvider';
+import { useGeo } from './GeolocationProvider';
+import { distanceMeters, formatDistance } from '@/lib/geo';
 import {
   STAGES,
   STAGE_COLORS,
@@ -99,6 +101,7 @@ function scrollActiveIntoView(container: HTMLElement | null) {
 
 export default function ProspectSheet() {
   const { views, selectedId, setSelectedId, save } = useData();
+  const { position } = useGeo();
   const view = views.find((v) => v.place_id === selectedId) ?? null;
 
   const [stage, setStage] = useState<Stage>('not_knocked');
@@ -447,6 +450,7 @@ export default function ProspectSheet() {
                   </Typography>
                   <Typography sx={{ mt: 0.5, fontSize: '1rem', color: 'text.secondary' }}>
                     {ICP[view.type as IcpType].label} · {view.neighborhood}
+                    {position ? ` · ${formatDistance(distanceMeters(position, view))}` : ''}
                   </Typography>
                 </Box>
                 <Chip

@@ -18,6 +18,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useData } from './DataProvider';
 import SheetShell from './SheetShell';
+import NotifyToggle from './NotifyToggle';
 import { SPRING_120 } from '@/lib/motion';
 import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
@@ -88,9 +89,13 @@ export default function FollowUps({
     <>
       <SheetShell onClose={onOpen} onScroll={onScroll} initialDetent="peek" ariaLabel="Follow-ups">
         <Box sx={{ px: 1.5, pb: 3 }}>
-      <Typography variant="h6" sx={{ px: 1, pt: 0.5, pb: 1.5 }}>
-        Follow-ups
-      </Typography>
+      <Stack
+        direction="row"
+        sx={{ px: 1, pt: 0.5, pb: 1.5, alignItems: 'center', justifyContent: 'space-between' }}
+      >
+        <Typography variant="h6">Follow-ups</Typography>
+        <NotifyToggle />
+      </Stack>
 
       {items.length === 0 ? (
         <Box

@@ -22,6 +22,6 @@ export const config = {
   matcher: [
     // Everything except: the login page, login/logout APIs, Next internals,
     // the service worker, manifest, and icon/static assets.
-    '/((?!login|api/login|api/logout|api/build|api/keepalive|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/).*)',
+    '/((?!login|api/login|api/logout|api/build|api/keepalive|api/notify-followups|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/).*)',
   ],
 };

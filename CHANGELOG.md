@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 ## [Unreleased]
 
 ### Added
+- Follow-up push notifications (opt-in): a "Remind me" toggle in Follow-ups subscribes the device to Web Push; a daily Vercel Cron pushes "N follow-ups due today" so reps act without opening the app. Requires one-time VAPID/Supabase setup — see docs/push-setup.md.
 - Route planning ("Plan my walk"): a map control that orders your nearest unworked (not-knocked) prospects into an efficient nearest-neighbour walking sequence — numbered stops with per-leg distance, total distance, tap-to-open, and per-stop Directions.
 - Canvassing efficiency (uses your GPS location, one shared watcher): Search results sort nearest-first; distance to each prospect shows on Search/Follow-up rows and the prospect card; a "Near me · not knocked" one-tap filter surfaces unworked prospects within ~1 km; and tapping a stage chip on the card now saves+closes in one tap (except "lost", which still asks for a reason).
 - Accessibility: the Search / Follow-ups / Contracts / Stats pull-up sheets and the prospect card are now proper labelled dialogs (`role="dialog"`, `aria-modal`, `aria-label`) and dismiss on the Escape key.

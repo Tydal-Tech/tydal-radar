@@ -36,3 +36,15 @@ alter table prospects enable row level security;
 alter table pipeline  enable row level security;
 create policy "anon all prospects" on prospects for all to anon using (true) with check (true);
 create policy "anon all pipeline"  on pipeline  for all to anon using (true) with check (true);
+
+-- push_subscriptions: Web Push endpoints for follow-up reminders (see
+-- app/api/notify-followups). Run this block to enable notifications.
+create table if not exists push_subscriptions (
+  endpoint   text primary key,
+  p256dh     text not null,
+  auth       text not null,
+  created_at timestamptz not null default now()
+);
+alter table push_subscriptions enable row level security;
+create policy "anon all push_subscriptions" on push_subscriptions
+  for all to anon using (true) with check (true);

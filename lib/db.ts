@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import type { Prospect, Pipeline } from './types';
+import type { PushRow } from './push';
 
 // PostgREST caps a select at ~1000 rows per request, so fetch in pages and
 // concatenate until a short page comes back — otherwise the map silently shows
@@ -45,5 +46,19 @@ export async function savePipeline(row: Pipeline): Promise<void> {
   const { error } = await supabase
     .from('pipeline')
     .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: 'place_id' });
+  if (error) throw error;
+}
+
+/** Register (or refresh) a Web Push subscription for follow-up reminders. */
+export async function savePushSubscription(row: PushRow): Promise<void> {
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .upsert(row, { onConflict: 'endpoint' });
+  if (error) throw error;
+}
+
+/** Remove a Web Push subscription (on unsubscribe / expiry). */
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
   if (error) throw error;
 }

@@ -5,6 +5,8 @@ import {
   weeklyActivity,
   byNeighborhood,
   lostReasons,
+  coverage,
+  competitors,
   CONVERSION_GATE,
   LOST_GATE,
   type FunnelData,
@@ -165,5 +167,58 @@ describe('lostReasons', () => {
 
   it('ignores non-lost prospects', () => {
     expect(lostReasons([v('client'), v('knocked')])).toMatchObject({ total: 0, rows: [] });
+  });
+});
+
+describe('coverage', () => {
+  it('summarizes market penetration by type, sorted by size', () => {
+    const views = [
+      v('not_knocked', { type: 'dental' }),
+      v('knocked', { type: 'dental' }),
+      v('client', { type: 'dental' }),
+      v('not_knocked', { type: 'gym' }),
+    ];
+    const rows = coverage(views, 'type');
+    expect(rows[0].label).toBe('dental'); // biggest segment first
+    expect(rows.find((r) => r.label === 'dental')).toMatchObject({
+      total: 3,
+      worked: 2,
+      won: 1,
+      untapped: 1,
+    });
+    expect(rows.find((r) => r.label === 'gym')).toMatchObject({
+      total: 1,
+      worked: 0,
+      won: 0,
+      untapped: 1,
+    });
+  });
+
+  it('summarizes by neighborhood, bucketing blanks as Unknown', () => {
+    const rows = coverage(
+      [v('knocked', { neighborhood: '' }), v('knocked', { neighborhood: 'Plateau' })],
+      'neighborhood',
+    );
+    expect(rows.map((r) => r.label).sort()).toEqual(['Plateau', 'Unknown']);
+  });
+});
+
+describe('competitors', () => {
+  it('counts current providers descending, ignoring blanks/nulls', () => {
+    const views = [
+      v('talked', { current_provider: 'GDI' }),
+      v('talked', { current_provider: 'GDI' }),
+      v('talked', { current_provider: 'Bee-Clean' }),
+      v('talked', { current_provider: '  ' }),
+      v('talked', { current_provider: null }),
+    ];
+    expect(competitors(views)).toEqual([
+      { provider: 'GDI', count: 2 },
+      { provider: 'Bee-Clean', count: 1 },
+    ]);
+  });
+
+  it('is empty when no providers are recorded', () => {
+    expect(competitors([v('knocked')])).toEqual([]);
   });
 });

@@ -159,3 +159,51 @@ export function lostReasons(views: ProspectView[]): LostReasonsData {
     rows,
   };
 }
+
+// ---- Market coverage (penetration / whitespace) ----------------------------
+// Per segment (ICP type or neighborhood): market size + how far it's been
+// worked, so untapped ground is obvious. Sorted by market size (total) desc.
+export interface CoverageRow {
+  label: string; // the ICP type or the neighborhood
+  total: number;
+  worked: number; // knocked or beyond (reachedRank >= 1)
+  won: number; // client
+  untapped: number; // still not_knocked
+}
+
+export function coverage(
+  views: ProspectView[],
+  dimension: 'type' | 'neighborhood',
+): CoverageRow[] {
+  const map = new Map<string, CoverageRow>();
+  for (const v of views) {
+    const label = dimension === 'type' ? v.type : v.neighborhood || 'Unknown';
+    const row = map.get(label) ?? { label, total: 0, worked: 0, won: 0, untapped: 0 };
+    row.total += 1;
+    if (reachedRank(v.stage) >= 1) row.worked += 1;
+    if (v.stage === 'client') row.won += 1;
+    if (v.stage === 'not_knocked') row.untapped += 1;
+    map.set(label, row);
+  }
+  return [...map.values()].sort((a, b) => b.total - a.total);
+}
+
+// ---- Competitive landscape --------------------------------------------------
+// Who currently holds the accounts, from pipeline.current_provider (filled in
+// when a rep learns the incumbent). Descending by count.
+export interface CompetitorRow {
+  provider: string;
+  count: number;
+}
+
+export function competitors(views: ProspectView[]): CompetitorRow[] {
+  const counts = new Map<string, number>();
+  for (const v of views) {
+    const p = v.current_provider?.trim();
+    if (!p) continue;
+    counts.set(p, (counts.get(p) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([provider, count]) => ({ provider, count }))
+    .sort((a, b) => b.count - a.count || a.provider.localeCompare(b.provider));
+}

@@ -9,11 +9,15 @@ import {
   conversions,
   byNeighborhood,
   lostReasons,
+  coverage,
+  competitors,
   LOST_GATE,
   CONVERSION_GATE,
 } from '@/lib/analytics';
 import { STAGE_COLORS, LOST_REASON_LABELS } from '@/lib/stages';
+import { ICP } from '@/lib/icp';
 import { cardSurfaceSx } from '@/lib/glass';
+import type { IcpType } from '@/lib/types';
 
 // Filled container card — matches the Detail sheet's surfaces: a fill slightly
 // lighter than the screen, 16px radius, no border/blur, 20px internal padding.
@@ -128,6 +132,9 @@ export default function Analytics({
   const nbs = byNeighborhood(views);
   const lr = lostReasons(views);
   const lrMax = Math.max(1, ...lr.rows.map((r) => r.count));
+  const cov = coverage(views, 'type');
+  const comp = competitors(views);
+  const compMax = Math.max(1, ...comp.map((c) => c.count));
 
   return (
     <SheetShell onClose={onClose} onScroll={onScroll} initialDetent="half" ariaLabel="Stats">
@@ -275,6 +282,70 @@ export default function Analytics({
                 max={lrMax}
                 color={STAGE_COLORS.lost}
               />
+            ))
+          )}
+        </Section>
+
+        {/* 6 — Market coverage: size + penetration + whitespace per segment */}
+        <Section title="Market coverage">
+          {cov.length === 0 ? (
+            <NotEnough>No prospects loaded yet.</NotEnough>
+          ) : (
+            <>
+              <Stack
+                direction="row"
+                sx={{
+                  pb: 0.5,
+                  color: 'text.secondary',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                }}
+              >
+                <Box sx={{ flex: 1 }}>Segment</Box>
+                <Box sx={{ width: 52, textAlign: 'right' }}>Total</Box>
+                <Box sx={{ width: 58, textAlign: 'right' }}>Worked</Box>
+                <Box sx={{ width: 52, textAlign: 'right' }}>Open</Box>
+              </Stack>
+              {cov.map((c) => (
+                <Stack
+                  key={c.label}
+                  direction="row"
+                  sx={{ py: 0.6, alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <Typography sx={{ flex: 1, fontSize: '0.9rem', fontWeight: 600, minWidth: 0 }} noWrap>
+                    {ICP[c.label as IcpType]?.label ?? c.label}
+                  </Typography>
+                  <Typography sx={{ width: 52, textAlign: 'right', fontSize: '0.92rem', fontWeight: 700, ...tnum }}>
+                    {c.total}
+                  </Typography>
+                  <Typography
+                    sx={{ width: 58, textAlign: 'right', fontSize: '0.92rem', fontWeight: 700, color: STAGE_COLORS.knocked, ...tnum }}
+                  >
+                    {c.worked}
+                  </Typography>
+                  <Typography
+                    sx={{ width: 52, textAlign: 'right', fontSize: '0.92rem', fontWeight: 700, color: 'text.secondary', ...tnum }}
+                  >
+                    {c.untapped}
+                  </Typography>
+                </Stack>
+              ))}
+            </>
+          )}
+        </Section>
+
+        {/* 7 — Competitive landscape: incumbents from current_provider */}
+        <Section title="Competitors">
+          {comp.length === 0 ? (
+            <NotEnough>
+              No incumbents recorded — note a prospect&apos;s current cleaner on its card to map the
+              competition.
+            </NotEnough>
+          ) : (
+            comp.map((c) => (
+              <Bar key={c.provider} label={c.provider} count={c.count} max={compMax} color={STAGE_COLORS.talked} />
             ))
           )}
         </Section>

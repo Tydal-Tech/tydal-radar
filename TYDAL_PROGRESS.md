@@ -2,6 +2,11 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Lead scoring / hot list (2026-06-30)
+- `lib/score.ts` `leadScore(view) → {score 0–100, reasons}`: opportunity by stage (0–30) + size from review count (0–25) + quality from rating (0–10) + timing from `urgency()` (0–25) + website (0–3). Pure; 9 unit tests. Max realistic = 93 (100 is a safety clamp).
+- Surfaced: Search's empty state is now a ranked "Top prospects · work these next" list (top 30, zero-opportunity rows dropped); colour-coded score badge on Search rows + the prospect card. tsc/224 tests/build all green; no new lint.
+- Builds on the Places enrichment (ratings/reviews/website now populated on 3,579/2,884 of 3,802 rows) — scoring is meaningful now that the signals exist.
+
 ## Baseline (2026-06-30)
 - `tsc --noEmit`: green. `next build`: green.
 - `eslint .`: **16 errors, 5 warnings** (mostly react-hooks rules: latest-ref-during-render in ClusteredMarkers/SheetShell/ProspectSheet, set-state-in-effect in useGeolocation; `require()` in the Node scraper).

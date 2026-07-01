@@ -36,6 +36,7 @@ import {
 } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
 import { parseExpiry } from '@/lib/contracts';
+import { leadScore } from '@/lib/score';
 import { openDirections } from '@/lib/directions';
 import { SPRING_SHEET } from '@/lib/motion';
 import { cssPx } from '@/lib/measure';
@@ -491,15 +492,34 @@ export default function ProspectSheet() {
                     </Typography>
                   )}
                 </Box>
-                <Chip
-                  label={STAGE_LABELS[view.stage]}
-                  sx={{
-                    bgcolor: STAGE_COLORS[view.stage],
-                    color: STAGE_ON_COLOR[view.stage],
-                    fontWeight: 600,
-                    flexShrink: 0,
-                  }}
-                />
+                <Stack spacing={0.75} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                  <Chip
+                    label={STAGE_LABELS[view.stage]}
+                    sx={{
+                      bgcolor: STAGE_COLORS[view.stage],
+                      color: STAGE_ON_COLOR[view.stage],
+                      fontWeight: 600,
+                    }}
+                  />
+                  {(() => {
+                    const score = leadScore(view).score;
+                    const color =
+                      score >= 60 ? '#ff6b35' : score >= 40 ? '#f9ab00' : 'rgba(255,255,255,0.45)';
+                    return (
+                      <Chip
+                        size="small"
+                        label={`Lead ${score}`}
+                        title="Lead score (higher = work first)"
+                        sx={{
+                          bgcolor: 'transparent',
+                          border: `1px solid ${color}`,
+                          color,
+                          fontWeight: 700,
+                        }}
+                      />
+                    );
+                  })()}
+                </Stack>
               </Stack>
 
               <Typography sx={{ mt: 2.5, mb: 1, fontSize: '1rem', fontWeight: 600 }}>

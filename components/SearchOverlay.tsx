@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   InputBase,
@@ -21,7 +21,31 @@ import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { glassCardSx } from '@/lib/glass';
 import { useGeo } from './GeolocationProvider';
 import { distanceMeters, formatDistance } from '@/lib/geo';
-import type { IcpType } from '@/lib/types';
+import { leadScore } from '@/lib/score';
+import type { IcpType, ProspectView } from '@/lib/types';
+
+// How many top-scored prospects to surface when the field is empty.
+const TOP_N = 30;
+
+// Lead-score pill: coloured by heat so the best doors stand out at a glance.
+function ScoreBadge({ score }: { score: number }) {
+  const color = score >= 60 ? '#ff6b35' : score >= 40 ? '#f9ab00' : 'rgba(255,255,255,0.45)';
+  return (
+    <Chip
+      size="small"
+      label={score}
+      title="Lead score (higher = work first)"
+      sx={{
+        alignSelf: 'flex-start',
+        bgcolor: 'transparent',
+        border: `1px solid ${color}`,
+        color,
+        fontWeight: 700,
+        flexShrink: 0,
+      }}
+    />
+  );
+}
 
 // Search as a bottom sheet OVER the map (Apple Maps pattern), built on the same
 // three-detent SheetShell as Follow-ups and Contracts so all three cards share
@@ -68,10 +92,56 @@ export default function SearchOverlay({
     ? [...matched].sort((a, b) => distanceMeters(position, a) - distanceMeters(position, b))
     : matched;
 
+  // Empty-field state doubles as a "hot list": the highest-scoring prospects to
+  // work next (opportunity + size/quality + timing). Drops zero-opportunity
+  // rows (won / not-interested) so it's an action list, not a directory.
+  const topProspects = useMemo(() => {
+    return views
+      .map((v) => ({ v, score: leadScore(v).score }))
+      .filter((r) => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, TOP_N);
+  }, [views]);
+
   function openProspect(placeId: string) {
     setSelectedId(placeId);
     onClose();
   }
+
+  const Row = ({ v, score }: { v: ProspectView; score?: number }) => (
+    <Card key={v.place_id} sx={glassCardSx}>
+      <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
+        <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 600 }} noWrap>
+              {v.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {ICP[v.type as IcpType].label} · {v.neighborhood}
+              {position ? ` · ${formatDistance(distanceMeters(position, v))}` : ''}
+            </Typography>
+            {v.address && (
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {v.address}
+              </Typography>
+            )}
+          </Box>
+          <Stack spacing={0.5} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+            {score != null && <ScoreBadge score={score} />}
+            <Chip
+              size="small"
+              label={STAGE_LABELS[v.stage]}
+              sx={{
+                bgcolor: STAGE_COLORS[v.stage],
+                color: STAGE_ON_COLOR[v.stage],
+                fontWeight: 600,
+              }}
+            />
+          </Stack>
+        </Stack>
+      </CardActionArea>
+    </Card>
+  );
 
   return (
     <SheetShell
@@ -120,10 +190,25 @@ export default function SearchOverlay({
       {/* Results — tapping/scrolling here dismisses the keyboard. */}
       <Box onPointerDown={blurKeyboard} sx={{ px: 1.5, pb: 2 }}>
         {!q ? (
-          <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 4, px: 3 }}>
-            <SearchIcon sx={{ fontSize: 44, opacity: 0.5 }} />
-            <Typography sx={{ mt: 1 }}>Search prospects by name or address</Typography>
-          </Box>
+          topProspects.length === 0 ? (
+            <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 4, px: 3 }}>
+              <SearchIcon sx={{ fontSize: 44, opacity: 0.5 }} />
+              <Typography sx={{ mt: 1 }}>Search prospects by name or address</Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1.25} sx={{ mt: 0.5 }}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ px: 0.5, letterSpacing: 0.5 }}
+              >
+                Top prospects · work these next
+              </Typography>
+              {topProspects.map(({ v, score }) => (
+                <Row key={v.place_id} v={v} score={score} />
+              ))}
+            </Stack>
+          )
         ) : results.length === 0 ? (
           <Box sx={{ textAlign: 'center', color: 'text.secondary', mt: 4, px: 3 }}>
             <Typography>No matches for “{query.trim()}”</Typography>
@@ -131,37 +216,7 @@ export default function SearchOverlay({
         ) : (
           <Stack spacing={1.25} sx={{ mt: 0.5 }}>
             {results.map((v) => (
-              <Card key={v.place_id} sx={glassCardSx}>
-                <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
-                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600 }} noWrap>
-                        {v.name}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
-                        {ICP[v.type as IcpType].label} · {v.neighborhood}
-                        {position ? ` · ${formatDistance(distanceMeters(position, v))}` : ''}
-                      </Typography>
-                      {v.address && (
-                        <Typography variant="body2" color="text.secondary" noWrap>
-                          {v.address}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Chip
-                      size="small"
-                      label={STAGE_LABELS[v.stage]}
-                      sx={{
-                        alignSelf: 'flex-start',
-                        bgcolor: STAGE_COLORS[v.stage],
-                        color: STAGE_ON_COLOR[v.stage],
-                        fontWeight: 600,
-                        flexShrink: 0,
-                      }}
-                    />
-                  </Stack>
-                </CardActionArea>
-              </Card>
+              <Row key={v.place_id} v={v} />
             ))}
           </Stack>
         )}

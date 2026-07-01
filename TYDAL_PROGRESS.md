@@ -2,6 +2,12 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Phase 0 spec — observability & budgets (2026-07-01)
+- Wrote `docs/phase-0-observability.md` — the CFO layer, buildable to the codebase's conventions (service-role routes via `lib/serverDb.ts`, gated reads, push alerts, CI/preview).
+- Design: two RLS-locked tables (`agent_runs`, `agent_budgets`); `lib/pricing.ts` `costOf()` (Haiku 1/5, Sonnet5 2/10 intro→3/15, Opus 5/25, cache 0.1×/1.25×); `lib/agentBudget.ts` (periodSpend/budgetStatus); `lib/runAgent.ts` seam (budget pre-check → run → capture `usage` → cost → log → threshold push). First customer = retrofit `/api/ai/pitch`. Cockpit = `/api/ops/summary` (gated) + `/ops` page.
+- Budget model: org-level **spawn cap** (block new runs once a scope hits its period cap: global/dept/role × day/week/month) + per-run `max_tokens`/`task_budget` cap. Seed caps: $5/day, $75/mo global.
+- Build order + tests in the doc; ship via branch→PR→CI→preview (first real use of the agent-ready workflow). Phase 0 adds ~no model cost (wraps existing calls). Approvals queue = Phase 1, out of scope here.
+
 ## AI-organization blueprint (2026-07-01)
 - Wrote `docs/ai-org.md` — the full plan to run Tydal's internal ops as an AI-staffed org (6 departments, ~18 narrow roles junior→chief, fan-out doctrine, context economy, cost tiers, KPIs, clean-win guardrails, phased rollout). Blueprint only; nothing auto-runs.
 - User's intent: aggressive, full-market-dominance ambition — framed as legitimate compounding advantage (coverage/speed/intelligence/follow-up/pricing) with CASL + Law 25 + no-dirty-tricks rules baked in as moat protection. Supervised model (agents propose, CEO disposes).

@@ -1,0 +1,138 @@
+name: Agent · Maintenance Engineer
+
+# The Maintenance Engineer (docs/agents/maintenance.md) — a weekly Claude Code run
+# that makes ONE small safe upkeep change and opens a PR a human merges. Never
+# pushes to main. Reports its cost into agent_runs via /api/ops/ingest, and files
+# the PR in the approvals queue. Also dispatchable for a manual dry-run.
+#
+# Requires: secrets ANTHROPIC_API_KEY, OPS_INGEST_SECRET; repo variable
+# APP_BASE_URL (the deployed app origin, e.g. https://radar.tydal.tech). Until
+# those exist this is inert. NEEDS A LIVE workflow_dispatch DRY-RUN to validate.
+
+on:
+  schedule:
+    - cron: '17 8 * * 1' # Mondays 08:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: agent-maintenance
+  cancel-in-progress: false
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    env:
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      OPS_INGEST_SECRET: ${{ secrets.OPS_INGEST_SECRET }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      ROLE: maintenance-engineer
+      DEPT: engineering
+      MODEL: claude-haiku-4-5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+
+      - name: Budget pre-check
+        id: precheck
+        run: |
+          BLOCKED=false
+          if [ -n "$APP_BASE_URL" ] && [ -n "$OPS_INGEST_SECRET" ]; then
+            BLOCKED=$(curl -sf -H "Authorization: Bearer $OPS_INGEST_SECRET" \
+              "$APP_BASE_URL/api/ops/precheck?department=$DEPT&role=$ROLE" \
+              | jq -r '.blocked // false' || echo false)
+          fi
+          echo "blocked=$BLOCKED" >> "$GITHUB_OUTPUT"
+          [ "$BLOCKED" = "true" ] && echo "::notice::Budget cap hit for $ROLE — skipping."
+          exit 0
+
+      - name: Run Maintenance Engineer (Claude Code)
+        if: steps.precheck.outputs.blocked != 'true'
+        id: agent
+        run: |
+          npm i -g @anthropic-ai/claude-code
+          git config user.name  "tydal-maintenance-agent"
+          git config user.email "agents@tydal.tech"
+          BRANCH="agent/maintenance-$(date +%Y%m%d-%H%M)"
+          git checkout -b "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          # Print mode, pinned model, non-interactive. Edits the working tree; the
+          # workflow (not the agent) owns git + the PR.
+          claude -p "$(cat docs/agents/maintenance.md)" \
+            --model "$MODEL" --output-format json --dangerously-skip-permissions \
+            > result.json || true
+          jq -r '.result // ""' result.json | tail -c 4000 > summary.txt || true
+
+      - name: Ingest usage
+        if: steps.precheck.outputs.blocked != 'true'
+        id: ingest
+        run: |
+          IN=$(jq -r '.usage.input_tokens // 0' result.json 2>/dev/null || echo 0)
+          OUT=$(jq -r '.usage.output_tokens // 0' result.json 2>/dev/null || echo 0)
+          CR=$(jq -r '.usage.cache_read_input_tokens // 0' result.json 2>/dev/null || echo 0)
+          CW=$(jq -r '.usage.cache_creation_input_tokens // 0' result.json 2>/dev/null || echo 0)
+          COST=$(jq -r '.total_cost_usd // 0' result.json 2>/dev/null || echo 0)
+          SID=$(jq -r '.session_id // ""' result.json 2>/dev/null || echo "")
+          {
+            echo "in=$IN"; echo "out=$OUT"; echo "cr=$CR"; echo "cw=$CW";
+            echo "cost=$COST"; echo "sid=$SID";
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Escalate (no code change)
+        if: steps.precheck.outputs.blocked != 'true'
+        run: |
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            REASON=$(grep -m1 '^ESCALATE:' summary.txt || echo "No change this run.")
+            [ -n "$APP_BASE_URL" ] && curl -sf -X POST "$APP_BASE_URL/api/ops/ingest" \
+              -H "Authorization: Bearer $OPS_INGEST_SECRET" -H 'content-type: application/json' \
+              -d "$(jq -n --arg role "$ROLE" --arg dept "$DEPT" --arg model "$MODEL" \
+                    --argjson in ${{ steps.ingest.outputs.in }} --argjson out ${{ steps.ingest.outputs.out }} \
+                    --argjson cr ${{ steps.ingest.outputs.cr }} --argjson cw ${{ steps.ingest.outputs.cw }} \
+                    --arg cost "${{ steps.ingest.outputs.cost }}" --arg reason "$REASON" \
+                    '{role:$role,department:$dept,model:$model,triggered_by:"schedule",status:"success",
+                      usage:{inputTokens:$in,outputTokens:$out,cacheReadTokens:$cr,cacheWriteTokens:$cw},
+                      meta:{reported_cost_usd:$cost},
+                      task: (if ($reason|startswith("ESCALATE:")) then {kind:"escalation",title:$reason} else null end)}')" || true
+            echo "No diff — nothing to PR."
+            exit 0
+          fi
+
+      - name: Commit + verify gates
+        if: steps.precheck.outputs.blocked != 'true'
+        id: gates
+        run: |
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git add -A
+          git commit -m "chore(maintenance): automated upkeep [maintenance-engineer]"
+          npx tsc --noEmit && npm test && npm run build
+
+      - name: Open PR + ingest
+        if: steps.precheck.outputs.blocked != 'true' && steps.gates.outputs.skip != 'true'
+        run: |
+          git push -u origin "${{ steps.agent.outputs.branch }}"
+          PR_URL=$(gh pr create --base main --head "${{ steps.agent.outputs.branch }}" \
+            --title "chore(maintenance): weekly upkeep" \
+            --body "$(cat summary.txt)
+
+          🤖 Maintenance Engineer — review the diff + preview, then merge. (Phase 1)" | tail -1)
+          [ -n "$APP_BASE_URL" ] && curl -sf -X POST "$APP_BASE_URL/api/ops/ingest" \
+            -H "Authorization: Bearer $OPS_INGEST_SECRET" -H 'content-type: application/json' \
+            -d "$(jq -n --arg role "$ROLE" --arg dept "$DEPT" --arg model "$MODEL" \
+                  --argjson in ${{ steps.ingest.outputs.in }} --argjson out ${{ steps.ingest.outputs.out }} \
+                  --argjson cr ${{ steps.ingest.outputs.cr }} --argjson cw ${{ steps.ingest.outputs.cw }} \
+                  --arg cost "${{ steps.ingest.outputs.cost }}" --arg pr "$PR_URL" \
+                  '{role:$role,department:$dept,model:$model,triggered_by:"schedule",status:"success",
+                    usage:{inputTokens:$in,outputTokens:$out,cacheReadTokens:$cr,cacheWriteTokens:$cw},
+                    meta:{reported_cost_usd:$cost},
+                    task:{kind:"pr",title:"Maintenance PR",link:$pr}}')" || true

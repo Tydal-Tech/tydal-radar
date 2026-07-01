@@ -2,6 +2,15 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Phase 1 BUILT — Engineering + Revenue (the first hires) (2026-07-01)
+- Built on `phase-1-eng-revenue` (stacked on `phase-0-observability`); tsc + 312 tests + build all green locally. The org now has staff scaffolding — 4 roles, all reporting into the Phase 0 CFO layer.
+- **Seam generalized — "one meter, two doors":** `lib/agentLog.ts` extracts `runCostColumns` + `scheduleBudgetAlert`; `runAgent` (in-process) and `/api/ops/ingest` (external) now write identical rows. Unit-tested invariant.
+- **External door for Engineering agents:** `GET /api/ops/precheck` (budget gate) + `POST /api/ops/ingest` (log a completed run), token-gated by `OPS_INGEST_SECRET` (`lib/opsAuth`), excluded from the app-password gate in `proxy.ts`. `lib/opsIngest.parseIngest` validates/normalizes (tested).
+- **Approvals queue (Phase-0-reserved slot):** `agent_tasks` (`lib/agentTasks`, RLS-locked) → a "Needs your yes" lane on `/ops` (PRs + escalations, optimistic resolve via `/api/ops/tasks`, browser-gated). `summary` gained `pending` + a triggered_by chip on recent runs.
+- **Revenue:** `lib/pitchAgent` (shared Claude call) refactors `/api/ai/pitch` + adds `/api/ai/pitch/batch` (≤12, sequential, stops on BudgetError). **Pipeline Steward** = `lib/steward.computeSteward` (pure, tested: going-cold active deals, due/overdue, escalate going-cold *quotes*) + `/api/ops/steward` daily cron (Haiku digest via `runAgent`, deduped escalation tasks, push). Cron added to `vercel.json`.
+- **Engineering runners:** `docs/agents/maintenance.md` + `feature.md` briefs (inherit AGENTS.md; escalate on auth/data/payments/schema; never merge) + `.github/workflows/agent-maintenance.yml` (weekly) + `agent-feature.yml` (dispatch/issue-label). Workflow owns git + gate + `gh pr create` + ingest; Claude Code runs `-p --output-format json`. **YAML validates; NOT yet live-run** (can't exec Actions locally).
+- **Human steps before it's live:** run the `agent_tasks` migration (spec §4); set `OPS_INGEST_SECRET`, Actions `ANTHROPIC_API_KEY`, repo var `APP_BASE_URL`; seed §7 budgets; dispatch each workflow once as a dry-run. Also: Phase 0 must be merged + its migration run first (Phase 1 stacks on it).
+
 ## Phase 0 BUILT — observability & budgets (the CFO layer) (2026-07-01)
 - The CFO layer is now code, not just spec. Built on `phase-0-observability` branch; tsc + 293 tests + build all green locally.
 - **Pricing** `lib/pricing.ts` — `costOf(model, usage)` single source of truth ($/1M, cache 0.1×/1.25×); computed on write, stored on the row. Unit-tested.

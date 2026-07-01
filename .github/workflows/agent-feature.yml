@@ -1,0 +1,130 @@
+name: Agent · Feature Engineer
+
+# The Feature Engineer (docs/agents/feature.md) — implements ONE human-provided
+# spec as a reviewable PR. Triggered on demand (workflow dispatch with a `spec`,
+# or an issue labeled `agent:feature` whose body is the spec). Never pushes to
+# main; a human reviews the preview and merges. Reports cost via /api/ops/ingest.
+#
+# Requires: secrets ANTHROPIC_API_KEY, OPS_INGEST_SECRET; repo variable
+# APP_BASE_URL. NEEDS A LIVE dispatch DRY-RUN to validate before relying on it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: 'The feature spec to implement'
+        required: true
+        type: string
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: agent-feature-${{ github.event.inputs.spec && 'dispatch' || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  feature:
+    # Only run the issue path when the label is exactly agent:feature.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:feature' }}
+    runs-on: ubuntu-latest
+    env:
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      OPS_INGEST_SECRET: ${{ secrets.OPS_INGEST_SECRET }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GH_TOKEN: ${{ github.token }}
+      ROLE: feature-engineer
+      DEPT: engineering
+      MODEL: claude-sonnet-5
+      SPEC: ${{ github.event.inputs.spec || github.event.issue.body }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+
+      - name: Budget pre-check
+        id: precheck
+        run: |
+          BLOCKED=false
+          if [ -n "$APP_BASE_URL" ] && [ -n "$OPS_INGEST_SECRET" ]; then
+            BLOCKED=$(curl -sf -H "Authorization: Bearer $OPS_INGEST_SECRET" \
+              "$APP_BASE_URL/api/ops/precheck?department=$DEPT&role=$ROLE" \
+              | jq -r '.blocked // false' || echo false)
+          fi
+          echo "blocked=$BLOCKED" >> "$GITHUB_OUTPUT"
+          [ "$BLOCKED" = "true" ] && echo "::notice::Budget cap hit for $ROLE — skipping."
+          exit 0
+
+      - name: Run Feature Engineer (Claude Code)
+        if: steps.precheck.outputs.blocked != 'true'
+        id: agent
+        run: |
+          npm i -g @anthropic-ai/claude-code
+          git config user.name  "tydal-feature-agent"
+          git config user.email "agents@tydal.tech"
+          BRANCH="agent/feature-$(date +%Y%m%d-%H%M)"
+          git checkout -b "$BRANCH"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          PROMPT="$(cat docs/agents/feature.md)
+
+          ## Feature spec to implement
+          $SPEC"
+          claude -p "$PROMPT" \
+            --model "$MODEL" --output-format json --dangerously-skip-permissions \
+            > result.json || true
+          jq -r '.result // ""' result.json | tail -c 6000 > summary.txt || true
+
+      - name: Ingest usage
+        if: steps.precheck.outputs.blocked != 'true'
+        id: ingest
+        run: |
+          echo "in=$(jq -r '.usage.input_tokens // 0' result.json 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+          echo "out=$(jq -r '.usage.output_tokens // 0' result.json 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+          echo "cr=$(jq -r '.usage.cache_read_input_tokens // 0' result.json 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+          echo "cw=$(jq -r '.usage.cache_creation_input_tokens // 0' result.json 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+          echo "cost=$(jq -r '.total_cost_usd // 0' result.json 2>/dev/null || echo 0)" >> "$GITHUB_OUTPUT"
+
+      - name: Commit + verify gates
+        if: steps.precheck.outputs.blocked != 'true'
+        id: gates
+        run: |
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard)" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Feature Engineer produced no diff."
+            exit 0
+          fi
+          git add -A
+          git commit -m "feat: ${SPEC:0:60} [feature-engineer]"
+          npx tsc --noEmit && npm test && npm run build
+
+      - name: Open PR + ingest
+        if: steps.precheck.outputs.blocked != 'true' && steps.gates.outputs.skip != 'true'
+        run: |
+          git push -u origin "${{ steps.agent.outputs.branch }}"
+          ESC=""; grep -q '^ESCALATE:' summary.txt && ESC="⚠️ Contains an ESCALATE note — read before merging.\n\n"
+          PR_URL=$(gh pr create --base main --head "${{ steps.agent.outputs.branch }}" \
+            --title "feat: ${SPEC:0:60}" \
+            --body "$(printf "%b" "$ESC")**Spec:** $SPEC
+
+          $(cat summary.txt)
+
+          🤖 Feature Engineer — review the diff + preview, then merge. (Phase 1)" | tail -1)
+          TASK_KIND=escalation; grep -q '^ESCALATE:' summary.txt || TASK_KIND=pr
+          [ -n "$APP_BASE_URL" ] && curl -sf -X POST "$APP_BASE_URL/api/ops/ingest" \
+            -H "Authorization: Bearer $OPS_INGEST_SECRET" -H 'content-type: application/json' \
+            -d "$(jq -n --arg role "$ROLE" --arg dept "$DEPT" --arg model "$MODEL" \
+                  --argjson in ${{ steps.ingest.outputs.in }} --argjson out ${{ steps.ingest.outputs.out }} \
+                  --argjson cr ${{ steps.ingest.outputs.cr }} --argjson cw ${{ steps.ingest.outputs.cw }} \
+                  --arg cost "${{ steps.ingest.outputs.cost }}" --arg pr "$PR_URL" --arg kind "$TASK_KIND" \
+                  '{role:$role,department:$dept,model:$model,triggered_by:"human",status:"success",
+                    usage:{inputTokens:$in,outputTokens:$out,cacheReadTokens:$cr,cacheWriteTokens:$cw},
+                    meta:{reported_cost_usd:$cost},
+                    task:{kind:$kind,title:"Feature PR",link:$pr}}')" || true

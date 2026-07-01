@@ -2,18 +2,33 @@ import { supabase } from './supabaseClient';
 import type { Prospect, Pipeline } from './types';
 import type { PushRow } from './push';
 
+// Build an Error from a failed /api/data/* response that carries the server's
+// real reason. The routes return `{ error }` (e.g. a Postgres message like
+// "new row violates row-level security policy"), so surfacing it turns a bare
+// "(500)" into something diagnosable instead of a mystery.
+async function failure(res: Response, action: string): Promise<Error> {
+  let detail = '';
+  try {
+    const body = (await res.json()) as { error?: string };
+    if (body?.error) detail = `: ${String(body.error).slice(0, 200)}`;
+  } catch {
+    // non-JSON body (gateway/HTML error, or the login redirect) — status is all we have
+  }
+  return new Error(`${action} failed (${res.status})${detail}`);
+}
+
 // Reads go through password-gated server routes (service-role key), so the
 // public anon key can be denied all access to prospects/pipeline. The routes
 // handle pagination server-side and return the full array.
 export async function fetchProspects(): Promise<Prospect[]> {
   const res = await fetch('/api/data/prospects');
-  if (!res.ok) throw new Error(`Loading prospects failed (${res.status})`);
+  if (!res.ok) throw await failure(res, 'Loading prospects');
   return (await res.json()) as Prospect[];
 }
 
 export async function fetchPipeline(): Promise<Pipeline[]> {
   const res = await fetch('/api/data/pipeline');
-  if (!res.ok) throw new Error(`Loading pipeline failed (${res.status})`);
+  if (!res.ok) throw await failure(res, 'Loading pipeline');
   return (await res.json()) as Pipeline[];
 }
 
@@ -28,7 +43,7 @@ export async function upsertProspects(rows: Prospect[]): Promise<number> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(rows),
   });
-  if (!res.ok) throw new Error(`Saving prospects failed (${res.status})`);
+  if (!res.ok) throw await failure(res, 'Saving prospects');
   const { count } = (await res.json()) as { count?: number };
   return count ?? rows.length;
 }
@@ -40,7 +55,7 @@ export async function savePipeline(row: Pipeline): Promise<void> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(row),
   });
-  if (!res.ok) throw new Error(`Saving failed (${res.status})`);
+  if (!res.ok) throw await failure(res, 'Saving');
 }
 
 /** Register (or refresh) a Web Push subscription for follow-up reminders. */

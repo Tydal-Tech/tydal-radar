@@ -37,6 +37,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 - `office` now means professional services (lawyer / accounting / real estate), merged into one bucket.
 
 ### Fixed
+- **Pipeline `stage` check constraint was missing `quoted` and `lost`** — moving a deal to *Quoted* or *Lost* failed with a 500. Widened `pipeline_stage_check` to match the app's eight stages (migration applied to prod; `SUPABASE.sql` updated to match).
+- **Data-route failures now surface the real reason** instead of a bare `(500)`. `lib/db.ts` reads the server's `{ error }` (e.g. a Postgres "row-level security" / "check constraint" message) into the thrown error, so a save/load failure is diagnosable at a glance. (This surfaced during an outage whose root cause was a prod `SUPABASE_SERVICE_ROLE_KEY` set to the wrong value → writes hit the DB as `anon` and RLS rejected them.)
 - Map could pan/zoom into the empty world beyond the map: added a `restriction` to greater Montréal (`strictBounds`) plus a `minZoom` floor, so zooming out or panning now stops at the region border.
 - Hydration mismatch on every load: `isOnline()` used `typeof navigator === 'undefined'` to detect the server, but Node 18+ defines a global `navigator` without `onLine`, so the server rendered the offline `SyncStatus` pill while the client rendered nothing — React then threw away and regenerated the tree. Now guards on `navigator.onLine` being a boolean.
 - Flaky dev server: a stray parent-dir lockfile made Turbopack infer the wrong workspace root and mis-resolve modules (e.g. `@mui/material-nextjs`) after cache invalidation. Pinned `turbopack.root` in `next.config.ts`.

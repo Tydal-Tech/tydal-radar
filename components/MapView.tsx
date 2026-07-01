@@ -10,6 +10,7 @@ import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import BarChartRoundedIcon from '@mui/icons-material/BarChartRounded';
 import ClusteredMarkers from './ClusteredMarkers';
 import DemandHeatmap from './DemandHeatmap';
+import SyncStatus from './SyncStatus';
 import FilterPanel from './FilterPanel';
 import { useData } from './DataProvider';
 import { useGeolocation } from '@/lib/useGeolocation';
@@ -26,8 +27,19 @@ export default function MapView({
 }: {
   onOpenAnalytics?: () => void;
 }) {
-  const { views, loading, refreshing, refresh, error, lastPull, selectedId, setSelectedId } =
-    useData();
+  const {
+    views,
+    loading,
+    refreshing,
+    refresh,
+    error,
+    lastPull,
+    online,
+    pending,
+    syncing,
+    selectedId,
+    setSelectedId,
+  } = useData();
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [filterAnchor, setFilterAnchor] = useState<HTMLElement | null>(null);
   const [heatmapOn, setHeatmapOn] = useState(true);
@@ -175,6 +187,9 @@ export default function MapView({
             : `${filtered.length} prospect${filtered.length === 1 ? '' : 's'}`}
         </Box>
       )}
+
+      {/* Offline / pending-sync / syncing indicator (top-left; hidden when synced). */}
+      <SyncStatus online={online} pending={pending} syncing={syncing} />
 
       {/* Right-edge stack of equal-size solid near-black circular controls
           (Uber pattern), just above the bottom bar: Refresh, Filter, Heatmap,

@@ -2,6 +2,13 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Growth signals + co-location intelligence (2026-07-01)
+- **Co-location (#1, reframed per user's PM insight):** naive "pitch all tenants" is useless (cleaning is usually property-manager-managed), so inverted it — `lib/buildings.ts` groups by normalized street address (strips suite/ste/unit/apt/bureau/#; drops collision-prone office/local). Card flags **sole occupant** (controls own cleaning → direct target) vs **shared building** (likely PM). DB check: 2,864 sole / 979 shared of 3,843. 6 tests.
+- **Time-series growth signals (#2, the moat):**
+  - In-app "just opened": added optional `first_seen?: string|null` to Prospect; `isNewlyOpened()` (60-day window) + a +20 leadScore boost + "✦ New" card badge. **Needs a migration the user runs** (add first_seen timestamptz, set default now()) — existing rows stay NULL (not new), future inserts get now(). Score now can exceed 93 → the 100 clamp is real (tested).
+  - Report-side momentum: scraper snapshot now stores rating + user_rating_count; `diff-snapshots.mjs` adds "Just opened", "Gone (likely closed)", and "Fastest growing (review momentum)". Verified on synthetic snapshots.
+- All green: tsc, 234 tests (+10), build, no new lint. Pending: user runs the first_seen SQL (in-app New badge/boost inert until then + until new businesses get inserted).
+
 ## Automated market refresh — option B (2026-06-30)
 - Chose local scheduled full refresh over cloud crons: Montreal SMB market turns over monthly-to-quarterly, so standing cloud infra + recurring quota isn't justified yet. Zero infra risk, nothing running blind in prod.
 - `radar-grid-scrape.js` now writes a per-run found-set to `market-snapshots/market-<ISO>.json` (place_id/name/type/neighborhood). This is the TRUE market state — the DB never deletes rows so DB backups only show growth; the found-set reveals closures too.

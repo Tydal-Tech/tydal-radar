@@ -22,6 +22,9 @@ export interface Prospect {
   rating: number | null;
   user_rating_count: number | null;
   website: string | null;
+  // Set by the DB default the first time a row is inserted (see the first_seen
+  // migration). Null on rows that predate the column — those aren't "new".
+  first_seen?: string | null;
 }
 
 /** Row in the `pipeline` table (per-prospect sales state). */

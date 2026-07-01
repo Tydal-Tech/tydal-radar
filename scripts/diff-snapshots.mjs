@@ -42,10 +42,24 @@ if (!a || !b) {
 
 const older = JSON.parse(await readFile(a, 'utf8')).prospects ?? [];
 const newer = JSON.parse(await readFile(b, 'utf8')).prospects ?? [];
-const oldIds = new Set(older.map((p) => p.place_id));
+const oldById = new Map(older.map((p) => [p.place_id, p]));
 const newIds = new Set(newer.map((p) => p.place_id));
-const added = newer.filter((p) => !oldIds.has(p.place_id));
+const added = newer.filter((p) => !oldById.has(p.place_id));
 const removed = older.filter((p) => !newIds.has(p.place_id));
+
+// Review momentum: businesses gaining reviews fastest are growing → higher-value
+// (they'll need more cleaning and can pay). Needs review counts in both snapshots
+// (older market snapshots may not have them, in which case this stays empty).
+const risers = newer
+  .filter((p) => oldById.has(p.place_id))
+  .map((p) => {
+    const before = oldById.get(p.place_id).user_rating_count;
+    const gain =
+      p.user_rating_count != null && before != null ? p.user_rating_count - before : null;
+    return { ...p, gain };
+  })
+  .filter((p) => p.gain != null && p.gain > 0)
+  .sort((x, y) => y.gain - x.gain);
 
 console.log(`${a} (${older.length})  ->  ${b} (${newer.length})`);
 console.log(`+${added.length} new  ·  -${removed.length} gone`);
@@ -53,10 +67,15 @@ console.log('new by type: ', countByType(added));
 console.log('gone by type:', countByType(removed));
 
 if (added.length) {
-  console.log('\nNew:');
+  console.log('\nJust opened (no cleaning contract yet):');
   for (const p of added.slice(0, 20)) console.log(`  + ${p.name}  [${p.type}]  ${p.neighborhood ?? ''}`);
 }
 if (removed.length) {
-  console.log('\nGone:');
+  console.log('\nGone (likely closed):');
   for (const p of removed.slice(0, 20)) console.log(`  - ${p.name}  [${p.type}]  ${p.neighborhood ?? ''}`);
+}
+if (risers.length) {
+  console.log('\nFastest growing (review momentum — expanding, high-value):');
+  for (const p of risers.slice(0, 15))
+    console.log(`  ↑ +${p.gain} reviews  ${p.name}  [${p.type}]  ${p.neighborhood ?? ''}`);
 }

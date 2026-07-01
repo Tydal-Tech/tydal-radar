@@ -24,6 +24,17 @@ export interface LeadScore {
   reasons: string[]; // the notable positive contributors
 }
 
+// A business first seen within this window is treated as newly opened.
+export const NEW_WINDOW_DAYS = 60;
+
+/** True if the prospect was first scraped recently (→ likely no cleaning contract yet). */
+export function isNewlyOpened(firstSeen: string | null | undefined, now: Date = new Date()): boolean {
+  if (!firstSeen) return false;
+  const t = Date.parse(firstSeen);
+  if (Number.isNaN(t)) return false;
+  return t <= now.getTime() && now.getTime() - t <= NEW_WINDOW_DAYS * 86_400_000;
+}
+
 export function leadScore(v: ProspectView): LeadScore {
   let score = STAGE_OPPORTUNITY[v.stage];
   const reasons: string[] = [];
@@ -50,6 +61,12 @@ export function leadScore(v: ProspectView): LeadScore {
   } else if (urg === 'amber') {
     score += 12;
     reasons.push('contract expiring soon');
+  }
+
+  // Newly opened → no cleaning contract locked in yet: the hottest domain signal.
+  if (isNewlyOpened(v.first_seen)) {
+    score += 20;
+    reasons.push('newly opened — likely no cleaning contract yet');
   }
 
   // Legitimacy: a real website.

@@ -255,6 +255,8 @@ async function main() {
           name: p.name,
           type: p.type,
           neighborhood: p.neighborhood,
+          rating: p.rating ?? null,
+          user_rating_count: p.user_rating_count ?? null,
         })),
       }),
     );

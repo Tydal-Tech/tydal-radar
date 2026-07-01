@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { leadScore } from './score';
+import { leadScore, isNewlyOpened } from './score';
 import type { ProspectView } from './types';
 import type { Stage } from './stages';
 
@@ -80,9 +80,47 @@ describe('leadScore', () => {
     expect(r.score).toBeLessThanOrEqual(100);
   });
 
+  it('boosts a newly-opened business (no contract yet)', () => {
+    const fresh = new Date(Date.now() - 5 * 86_400_000).toISOString(); // 5 days ago
+    const r = leadScore(v('not_knocked', { first_seen: fresh }));
+    expect(r.score).toBe(30 + 20);
+    expect(r.reasons).toContain('newly opened — likely no cleaning contract yet');
+  });
+
+  it('does not treat old / missing first_seen as new', () => {
+    expect(leadScore(v('not_knocked', { first_seen: '2020-01-01' })).score).toBe(30);
+    expect(leadScore(v('not_knocked', { first_seen: null })).score).toBe(30);
+    expect(leadScore(v('not_knocked')).score).toBe(30);
+  });
+
+  it('clamps to 100 when every signal including newly-opened fires', () => {
+    const fresh = new Date(Date.now() - 1 * 86_400_000).toISOString();
+    const r = leadScore(
+      v('not_knocked', {
+        user_rating_count: 100_000,
+        rating: 5,
+        follow_up_date: '2000-01-01',
+        website: 'https://x.com',
+        first_seen: fresh,
+      }),
+    );
+    expect(r.score).toBe(100); // 30+25+10+25+3+20 = 113 → clamped
+  });
+
   it('ranks a hot lead above a cold one', () => {
     const hot = leadScore(v('not_knocked', { user_rating_count: 400, rating: 4.8 })).score;
     const cold = leadScore(v('client', { user_rating_count: 5, rating: 3.0 })).score;
     expect(hot).toBeGreaterThan(cold);
+  });
+});
+
+describe('isNewlyOpened', () => {
+  const now = new Date('2026-07-01T00:00:00Z');
+  it('is true within the window, false outside / for junk / for future dates', () => {
+    expect(isNewlyOpened('2026-06-15T00:00:00Z', now)).toBe(true); // 16 days ago
+    expect(isNewlyOpened('2026-01-01T00:00:00Z', now)).toBe(false); // long ago
+    expect(isNewlyOpened('2027-01-01T00:00:00Z', now)).toBe(false); // future
+    expect(isNewlyOpened(null, now)).toBe(false);
+    expect(isNewlyOpened('not-a-date', now)).toBe(false);
   });
 });

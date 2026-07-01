@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   motion,
   AnimatePresence,
@@ -36,7 +36,8 @@ import {
 } from '@/lib/stages';
 import { ICP } from '@/lib/icp';
 import { parseExpiry } from '@/lib/contracts';
-import { leadScore } from '@/lib/score';
+import { leadScore, isNewlyOpened } from '@/lib/score';
+import { buildIndex, coLocation } from '@/lib/buildings';
 import { openDirections } from '@/lib/directions';
 import { SPRING_SHEET } from '@/lib/motion';
 import { cssPx } from '@/lib/measure';
@@ -104,6 +105,8 @@ export default function ProspectSheet() {
   const { views, selectedId, setSelectedId, save } = useData();
   const { position } = useGeo();
   const view = views.find((v) => v.place_id === selectedId) ?? null;
+  const buildingIndex = useMemo(() => buildIndex(views), [views]);
+  const co = view ? coLocation(buildingIndex, view) : null;
 
   const [stage, setStage] = useState<Stage>('not_knocked');
   const [note, setNote] = useState('');
@@ -491,8 +494,25 @@ export default function ProspectSheet() {
                       Website ↗
                     </Typography>
                   )}
+                  {co?.known && (
+                    <Typography
+                      sx={{ mt: 0.5, fontSize: '0.85rem', color: co.soleOccupant ? '#34c759' : 'text.secondary' }}
+                    >
+                      {co.soleOccupant
+                        ? '🏠 Sole occupant · controls its own cleaning'
+                        : `🏢 Shares this address with ${co.count - 1} other business${co.count - 1 === 1 ? '' : 'es'} · cleaning likely handled by the property manager`}
+                    </Typography>
+                  )}
                 </Box>
                 <Stack spacing={0.75} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
+                  {isNewlyOpened(view.first_seen) && (
+                    <Chip
+                      size="small"
+                      label="✦ New"
+                      title="First seen recently — likely no cleaning contract yet"
+                      sx={{ bgcolor: '#34c759', color: '#00250e', fontWeight: 700 }}
+                    />
+                  )}
                   <Chip
                     label={STAGE_LABELS[view.stage]}
                     sx={{

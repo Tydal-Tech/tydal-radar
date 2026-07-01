@@ -2,6 +2,12 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## AI-organization blueprint (2026-07-01)
+- Wrote `docs/ai-org.md` — the full plan to run Tydal's internal ops as an AI-staffed org (6 departments, ~18 narrow roles junior→chief, fan-out doctrine, context economy, cost tiers, KPIs, clean-win guardrails, phased rollout). Blueprint only; nothing auto-runs.
+- User's intent: aggressive, full-market-dominance ambition — framed as legitimate compounding advantage (coverage/speed/intelligence/follow-up/pricing) with CASL + Law 25 + no-dirty-tricks rules baked in as moat protection. Supervised model (agents propose, CEO disposes).
+- Agreed starting point: **Phase 0 = observability + per-agent budgets** (can't run an org you can't see/cap), then Phase 1 = Engineering (PR→merge) + Revenue (pitch/pipeline) since their substrate already exists (repo/CI/preview/locked DB, pitch engine, hot list).
+- Cost model: usage-based (tokens), Lean ~$10–30/mo → Full org ~$150–500+/mo; "100 agents" = a peak fan-out day of cheap ephemeral Haiku workers, not a fixed size.
+
 ## Agent-readiness + DB write lockdown (2026-07-01)
 - **Agent guardrails** added to AGENTS.md (verify tsc+test+build, branch not main, never expose secrets, no billing, no destructive prod DB ops). Pushed (e0924ec).
 - **CI — DONE.** `.github/workflows/ci.yml` (tsc + test + build on push/PR) pushed (5a39adb) after the user added `workflow` scope to the git PAT. Runs on every push/PR; gates broken changes before they auto-deploy. (First-run result to be eyeballed in the Actions tab; all three pass locally.)

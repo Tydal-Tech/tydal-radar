@@ -1,0 +1,39 @@
+name: CI
+
+# Safety gate for changes (including agent-authored PRs): typecheck, tests, and
+# a production build must pass before anything merges to main (main auto-deploys).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+        # Placeholder public env so the build compiles without real secrets.
+        # (Runtime uses the real values from Vercel; these are never used live.)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          NEXT_PUBLIC_GOOGLE_MAPS_KEY: placeholder
+          NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: placeholder
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: placeholder

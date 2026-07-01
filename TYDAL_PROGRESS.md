@@ -13,15 +13,21 @@ Loop memory for the autonomous improvement campaign. Newest entries on top.
 - **Team / multi-user mode** — explicitly EXCLUDED by the user. Do not build.
 - **CI via GitHub Actions** — blocked: the saved token lacks `workflow` scope, so `.github/workflows/*` can't be pushed. Logged; revisit if token is upgraded.
 
+## Checkpoint (2026-06-30)
+Safe, self-verifiable work is done for now: **tests 0→157, eslint 16→8 errors, filters/directions extracted, closed-business filtering added, CHANGELOG+progress established.** All commits verified (tsc + `npm test` + `next build`) and pushed to `main`.
+Remaining items each need something I can't supply autonomously here — flagged inline below.
+
 ## Candidate queue (highest-leverage first)
 1. ✅ DONE — Test infrastructure (Vitest) + pure-logic coverage (contracts/stages/icp/analytics): 136 tests.
 2. 🔶 PARTIAL — Lint: safe subset done (Node-script `require` exemption, dead `eslint-disable` removed, unused `ICP` import pruned). 21→17 problems. **Remaining 15 errors are all `react-hooks/refs` + `react-hooks/set-state-in-effect`** across the interactive core (AppShell, MapView, DataProvider, ProspectSheet, ClusteredMarkers, SheetShell). Deferred deliberately: (a) latest-value-ref reads/assigns are mechanically fixable (move to `useState` lazy-init / `useEffect`), safe since refs are read only in async handlers — do per-file with care; (b) several `set-state-in-effect` cases (toasts in MapView, viewport sync in AppShell, initial load in DataProvider, layout-measure in ProspectSheet) are legitimate external-sync patterns the rule flags heuristically — fix case-by-case, do NOT mass-refactor blind (no device testing here). 2 warnings (ref-in-cleanup, missing `close` dep) also queued.
-3. Offline-first: cache prospects (IndexedDB) + optimistic pipeline writes + sync queue (field tool on poor connectivity).
-4. Data quality: fetch Places `businessStatus`, flag/skip permanently-closed; refresh mutable fields.
-5. Follow-up push notifications (PWA web push) for due follow-ups.
-6. Accessibility pass (aria labels, contrast, tap targets, scalable text).
-7. Perf: profile ~2.6k Advanced Markers on mid devices; lighten renderer if it janks.
-8. Route/day planning across filtered prospects.
+3. ✅ DONE — Data quality: `businessStatus` skip (scraper + in-app pull). (Field-refresh of mutable fields still open.)
+4. Remaining 8 `set-state-in-effect` lint errors — NEEDS device testing (touches toasts/keyboard/data-load in the interactive core; won't refactor blind).
+5. Offline-first: IndexedDB cache + optimistic writes + sync queue — BIG/architectural; NEEDS device verification of the offline UX. Log a design before building.
+6. Follow-up push notifications — NEEDS infra (VAPID keypair + a send trigger) and a product decision; can't wire fully autonomously.
+7. Accessibility pass — additive but NEEDS device/AT verification to confirm.
+8. Perf: profile ~2.6k Advanced Markers — NEEDS a mid-tier device to measure before changing the renderer.
+9. Route/day planning — feature; NEEDS a product decision on scope.
+10. Auth/RLS hardening — PARKED, needs explicit user go-ahead (STOP condition).
 
 ## Log
 - 2026-06-30 — Data quality: request Places `businessStatus` and skip CLOSED_PERMANENTLY/CLOSED_TEMPORARILY in both the scraper and the in-app pull (keep unknown-status). Takes effect on the next scrape/Refresh (existing rows unchanged; not re-scraping — quota). tsc/lint(8)/tests(157)/build green.

@@ -471,6 +471,25 @@ export default function ProspectSheet() {
                     {ICP[view.type as IcpType].label} · {view.neighborhood}
                     {position ? ` · ${formatDistance(distanceMeters(position, view))}` : ''}
                   </Typography>
+                  {view.rating != null && (
+                    <Typography sx={{ mt: 0.25, fontSize: '0.95rem', color: 'text.secondary' }}>
+                      ★ {view.rating.toFixed(1)}
+                      {view.user_rating_count
+                        ? ` · ${view.user_rating_count} review${view.user_rating_count === 1 ? '' : 's'}`
+                        : ''}
+                    </Typography>
+                  )}
+                  {view.website && (
+                    <Typography
+                      component="a"
+                      href={view.website}
+                      target="_blank"
+                      rel="noopener"
+                      sx={{ mt: 0.25, display: 'inline-block', fontSize: '0.9rem', color: 'primary.main' }}
+                    >
+                      Website ↗
+                    </Typography>
+                  )}
                 </Box>
                 <Chip
                   label={STAGE_LABELS[view.stage]}

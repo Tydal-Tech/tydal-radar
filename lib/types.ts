@@ -18,6 +18,10 @@ export interface Prospect {
   lng: number;
   phone: string | null;
   address: string | null;
+  // Enrichment from Places (populated on scrape/Refresh; null on older rows).
+  rating: number | null;
+  user_rating_count: number | null;
+  website: string | null;
 }
 
 /** Row in the `pipeline` table (per-prospect sales state). */

@@ -2,15 +2,18 @@
 
 -- prospects: cached Google Places results
 create table if not exists prospects (
-  place_id     text primary key,
-  name         text not null,
-  type         text not null,         -- daycare | dental | gym | office
-  neighborhood text not null,
-  lat          double precision not null,
-  lng          double precision not null,
-  phone        text,
-  address      text,
-  created_at   timestamptz not null default now()
+  place_id          text primary key,
+  name              text not null,
+  type              text not null,     -- daycare | dental | gym | veterinary | medical | office
+  neighborhood      text not null,
+  lat               double precision not null,
+  lng               double precision not null,
+  phone             text,
+  address           text,
+  rating            double precision,  -- Places enrichment (filled on scrape)
+  user_rating_count integer,
+  website           text,
+  created_at        timestamptz not null default now()
 );
 
 -- pipeline: per-prospect sales state

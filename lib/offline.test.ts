@@ -22,6 +22,9 @@ const prospect = (place_id: string, over: Partial<Prospect> = {}): Prospect => (
   lng: -73.57,
   phone: null,
   address: null,
+  rating: null,
+  user_rating_count: null,
+  website: null,
   ...over,
 });
 const pipeline = (place_id: string, over: Partial<Pipeline> = {}): Pipeline => ({

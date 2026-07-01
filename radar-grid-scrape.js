@@ -30,6 +30,9 @@ const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const REFERER = 'http://localhost:3000/';
 
 const DRY_RUN = process.argv.includes('--dry-run');
+// Overwrite existing rows instead of insert-only — use to backfill enrichment
+// (rating/website) / refresh stale fields on a re-scrape. Default is additive.
+const UPDATE = process.argv.includes('--update');
 
 // Optional: limit the run to specific buckets, e.g. `--only=medical` or
 // `--only=office,medical`. Lets you scrape one category citywide without
@@ -87,6 +90,9 @@ const FIELD_MASK = [
   'places.nationalPhoneNumber',
   'places.types',
   'places.businessStatus',
+  'places.rating',
+  'places.userRatingCount',
+  'places.websiteUri',
   'nextPageToken',
 ].join(',');
 
@@ -170,6 +176,9 @@ function toProspect(p, type) {
     lng,
     phone: p.nationalPhoneNumber ?? null,
     address: p.formattedAddress ?? null,
+    rating: p.rating ?? null,
+    user_rating_count: p.userRatingCount ?? null,
+    website: p.websiteUri ?? null,
   };
 }
 
@@ -241,7 +250,7 @@ async function main() {
     const chunk = prospects.slice(i, i + BATCH);
     const { error } = await supabase
       .from('prospects')
-      .upsert(chunk, { onConflict: 'place_id', ignoreDuplicates: true });
+      .upsert(chunk, { onConflict: 'place_id', ignoreDuplicates: !UPDATE });
     if (error) { console.error(`Upsert batch ${i / BATCH} failed: ${error.message}`); process.exit(1); }
   }
 

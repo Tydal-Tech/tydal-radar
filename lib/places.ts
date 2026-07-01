@@ -9,6 +9,9 @@ const FIELDS = [
   'nationalPhoneNumber',
   'types',
   'businessStatus',
+  'rating',
+  'userRatingCount',
+  'websiteURI',
 ];
 
 export interface PullResult {
@@ -82,5 +85,8 @@ function toProspect(
     lng: p.location.lng(),
     phone: p.nationalPhoneNumber ?? null,
     address: p.formattedAddress ?? null,
+    rating: p.rating ?? null,
+    user_rating_count: p.userRatingCount ?? null,
+    website: p.websiteURI ?? null,
   };
 }

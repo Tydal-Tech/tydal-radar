@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 ## [Unreleased]
 
 ### Added
+- Prospect enrichment: the scraper + in-app Refresh now capture Places `rating`, review count, and website, shown on the prospect card. Backfill existing rows with `node --env-file=.env.local radar-grid-scrape.js --update` (a re-scrape that overwrites instead of insert-only).
 - Market-intelligence analytics: a "Market coverage" table (size / worked / open per ICP segment — surfaces whitespace) and a "Competitors" breakdown (incumbents from `current_provider`) in the Stats sheet.
 - Market change over time: `scripts/diff-snapshots.mjs` diffs two backup snapshots to show businesses added (growth) vs gone (churn/closed), with a per-type breakdown.
 - Follow-up push notifications (opt-in): a "Remind me" toggle in Follow-ups subscribes the device to Web Push; a daily Vercel Cron pushes "N follow-ups due today" so reps act without opening the app. Requires one-time VAPID/Supabase setup — see docs/push-setup.md.

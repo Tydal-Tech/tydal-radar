@@ -86,6 +86,7 @@ const FIELD_MASK = [
   'places.formattedAddress',
   'places.nationalPhoneNumber',
   'places.types',
+  'places.businessStatus',
   'nextPageToken',
 ].join(',');
 
@@ -156,6 +157,8 @@ async function searchCell(spec, rectangle) {
 function toProspect(p, type) {
   if (!p.id || !p.location || !p.displayName?.text) return null;
   if ((p.types ?? []).some((t) => TYPE_DENYLIST.has(t))) return null;
+  // Skip closed businesses (keep unknown-status places).
+  if (p.businessStatus && p.businessStatus !== 'OPERATIONAL') return null;
   const lat = p.location.latitude;
   const lng = p.location.longitude;
   return {

@@ -8,6 +8,7 @@ const FIELDS = [
   'formattedAddress',
   'nationalPhoneNumber',
   'types',
+  'businessStatus',
 ];
 
 export interface PullResult {
@@ -67,6 +68,10 @@ function toProspect(
 ): Prospect | null {
   if (!p.id || !p.location || !p.displayName) return null;
   if ((p.types ?? []).some((t) => TYPE_DENYLIST.has(t))) return null;
+  // Drop closed businesses (permanently or temporarily) so the canvassing list
+  // stays actionable; keep places with an unknown status.
+  if (p.businessStatus && p.businessStatus !== google.maps.places.BusinessStatus.OPERATIONAL)
+    return null;
 
   return {
     place_id: p.id,

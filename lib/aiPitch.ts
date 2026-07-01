@@ -1,8 +1,9 @@
 // AI pitch: Claude turns a prospect's signals into a real door pitch — opener,
 // the objections THIS prospect will likely raise (with responses), who to ask
-// for, and the single strongest angle. The prompt-building + response-parsing
-// are pure (unit-tested and shared with the /api/ai/pitch route); the network
-// call + cache live in the client helpers at the bottom.
+// for, and the single strongest angle — in BOTH Québec French and English so
+// the rep uses whichever the prospect speaks. Prompt-building + response-parsing
+// are pure (unit-tested, shared with the /api/ai/pitch route); the network call
+// + cache live in the client helpers at the bottom.
 
 export interface PitchSignals {
   name: string;
@@ -21,31 +22,44 @@ export interface Rebuttal {
   response: string;
 }
 
-export interface AiPitch {
+/** One language's pitch. */
+export interface PitchBody {
   opener: string;
   rebuttals: Rebuttal[];
   askFor: string;
   leadAngle: string;
 }
 
+/** Bilingual pitch — Québec French + English. */
+export interface AiPitch {
+  fr: PitchBody;
+  en: PitchBody;
+}
+
+export type PitchLang = 'fr' | 'en';
+
 const SYSTEM = `You are a top-performing B2B sales coach for a commercial cleaning company that sells to businesses in Montréal, Québec through door-to-door canvassing.
 
-Given ONE prospect, write a concise, natural, spoken-word door pitch a rep can use immediately. Montréal is bilingual — keep it in English but warm and locally aware. Be specific to THIS prospect's signals; never generic filler.
+Given ONE prospect, write a concise, natural, spoken-word door pitch a rep can use immediately. Produce it in BOTH Québec French and English, because the rep won't know which language the prospect speaks until the door opens. The French must read as natural Québécois (not a literal translation), and the English must read as natural English — each idiomatic on its own, same meaning.
 
-Ground the pitch in the signals:
+Be specific to THIS prospect's signals; never generic filler. Ground the pitch in the signals:
 - Newly opened → they likely have no cleaning contract locked in yet; move fast.
 - A known incumbent provider → probe satisfaction (reliability, no-shows, price), don't bad-mouth.
 - Sole occupant of their address → they control the cleaning decision directly.
 - Shared building → cleaning is often the property manager's call; find who decides.
 - High rating / many reviews → a spotless space protects the reputation they've built.
 
-Respond with ONLY a JSON object (no markdown, no code fences, no prose) with exactly these keys:
+Respond with ONLY a JSON object (no markdown, no code fences, no prose) with exactly this shape:
 {
-  "opener": "1-2 sentence spoken hook",
-  "rebuttals": [{"objection": "...", "response": "..."}],  // the 2-3 objections THIS prospect is most likely to raise, each with a confident, non-pushy response
-  "askFor": "the single role to ask for at the door, e.g. 'the office manager'",
-  "leadAngle": "one sentence naming the single strongest reason they'd switch or buy"
-}`;
+  "fr": {
+    "opener": "1-2 sentence spoken hook (Québec French)",
+    "rebuttals": [{"objection": "...", "response": "..."}],
+    "askFor": "the role to ask for at the door, e.g. 'la directrice'",
+    "leadAngle": "one sentence: the single strongest reason they'd switch or buy"
+  },
+  "en": { "opener": "...", "rebuttals": [{"objection": "...", "response": "..."}], "askFor": "...", "leadAngle": "..." }
+}
+Each rebuttals array holds the 2-3 objections THIS prospect is most likely to raise, each with a confident, non-pushy response.`;
 
 /** Build the Anthropic system + user messages for a prospect. Pure. */
 export function buildMessages(s: PitchSignals): { system: string; user: string } {
@@ -68,7 +82,26 @@ export function buildMessages(s: PitchSignals): { system: string; user: string }
   return { system: SYSTEM, user: `Prospect:\n${facts}` };
 }
 
-/** Parse Claude's response into an AiPitch, tolerating stray code fences. Pure. */
+const asStr = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+
+function parseBody(o: unknown): PitchBody | null {
+  if (!o || typeof o !== 'object') return null;
+  const obj = o as Record<string, unknown>;
+  const opener = asStr(obj.opener);
+  if (!opener) return null;
+  const rebuttals: Rebuttal[] = Array.isArray(obj.rebuttals)
+    ? (obj.rebuttals as unknown[])
+        .slice(0, 3)
+        .map((r) => {
+          const x = (r ?? {}) as Record<string, unknown>;
+          return { objection: asStr(x.objection), response: asStr(x.response) };
+        })
+        .filter((r) => r.objection && r.response)
+    : [];
+  return { opener, rebuttals, askFor: asStr(obj.askFor), leadAngle: asStr(obj.leadAngle) };
+}
+
+/** Parse Claude's response into a bilingual AiPitch, tolerating fences/prose. Pure. */
 export function parsePitch(text: string): AiPitch {
   let s = (text ?? '').trim();
   if (s.startsWith('```')) {
@@ -87,31 +120,26 @@ export function parsePitch(text: string): AiPitch {
     if (start === -1 || end <= start) throw new Error('no JSON object in AI response');
     obj = JSON.parse(s.slice(start, end + 1)) as Record<string, unknown>;
   }
-  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
-  const opener = str(obj.opener);
-  if (!opener) throw new Error('AI pitch missing an opener');
-  const rebuttals: Rebuttal[] = Array.isArray(obj.rebuttals)
-    ? (obj.rebuttals as unknown[])
-        .slice(0, 3)
-        .map((r) => {
-          const o = (r ?? {}) as Record<string, unknown>;
-          return { objection: str(o.objection), response: str(o.response) };
-        })
-        .filter((r) => r.objection && r.response)
-    : [];
-  return { opener, rebuttals, askFor: str(obj.askFor), leadAngle: str(obj.leadAngle) };
+  const fr = parseBody(obj.fr);
+  const en = parseBody(obj.en);
+  const primary = fr ?? en;
+  if (!primary) throw new Error('AI pitch missing content');
+  // If a language is missing, fall back to the other so the UI never breaks.
+  return { fr: fr ?? primary, en: en ?? primary };
 }
 
 // ---- client-only helpers (network + localStorage cache) --------------------
 
 const CACHE_PREFIX = 'tydal-pitch:';
 
-/** Last generated pitch for a prospect, cached locally so re-opening is instant/offline. */
+/** Last generated bilingual pitch for a prospect (ignores older cache shapes). */
 export function cachedPitch(placeId: string): AiPitch | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(CACHE_PREFIX + placeId);
-    return raw ? (JSON.parse(raw) as AiPitch) : null;
+    if (!raw) return null;
+    const p = JSON.parse(raw) as AiPitch;
+    return p?.fr?.opener && p?.en?.opener ? p : null; // guard old (non-bilingual) cache
   } catch {
     return null;
   }

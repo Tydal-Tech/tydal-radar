@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1200,
+        max_tokens: 2500,
         system,
         messages: [{ role: 'user', content: user }],
       }),

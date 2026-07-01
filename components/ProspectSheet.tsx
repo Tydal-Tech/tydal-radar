@@ -47,6 +47,7 @@ import {
   cachedPitch,
   type AiPitch,
   type PitchSignals,
+  type PitchLang,
 } from '@/lib/aiPitch';
 import { openDirections } from '@/lib/directions';
 import { SPRING_SHEET } from '@/lib/motion';
@@ -140,6 +141,7 @@ export default function ProspectSheet() {
   const [aiPitch, setAiPitch] = useState<AiPitch | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [pitchLang, setPitchLang] = useState<PitchLang>('fr'); // Montréal default
   // Content scrolls only once fully expanded (iOS Maps); locked at peek/half.
   const [atFull, setAtFull] = useState(false);
   // Keyboard height (visual-viewport shrink) — lifts the sheet above the iOS
@@ -673,20 +675,39 @@ export default function ProspectSheet() {
                   )}
                   {aiPitch ? (
                     <>
+                      {/* FR / EN toggle — Montréal defaults to French. */}
+                      <Stack direction="row" spacing={0.5} sx={{ mb: 0.75 }}>
+                        {(['fr', 'en'] as const).map((lang) => (
+                          <Chip
+                            key={lang}
+                            size="small"
+                            label={lang.toUpperCase()}
+                            onClick={() => setPitchLang(lang)}
+                            sx={{
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              bgcolor: pitchLang === lang ? '#34c759' : 'transparent',
+                              color: pitchLang === lang ? '#00250e' : 'text.secondary',
+                              border: '1px solid rgba(52,199,89,0.4)',
+                            }}
+                          />
+                        ))}
+                      </Stack>
                       <Typography sx={{ fontSize: '0.95rem', fontStyle: 'italic', mb: 0.75 }}>
-                        “{aiPitch.opener}”
+                        “{aiPitch[pitchLang].opener}”
                       </Typography>
-                      {aiPitch.leadAngle && (
+                      {aiPitch[pitchLang].leadAngle && (
                         <Typography sx={{ fontSize: '0.85rem', mb: 0.75 }}>
-                          <b>Lead with:</b> {aiPitch.leadAngle}
+                          <b>{pitchLang === 'fr' ? 'Argument clé :' : 'Lead with:'}</b>{' '}
+                          {aiPitch[pitchLang].leadAngle}
                         </Typography>
                       )}
-                      {aiPitch.askFor && (
+                      {aiPitch[pitchLang].askFor && (
                         <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
-                          🗣 Ask for {aiPitch.askFor}
+                          🗣 {pitchLang === 'fr' ? 'Demandez' : 'Ask for'} {aiPitch[pitchLang].askFor}
                         </Typography>
                       )}
-                      {aiPitch.rebuttals.map((r, i) => (
+                      {aiPitch[pitchLang].rebuttals.map((r, i) => (
                         <Box key={i} sx={{ mb: 0.75 }}>
                           <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }}>
                             “{r.objection}”

@@ -38,6 +38,10 @@ import { ICP } from '@/lib/icp';
 import { parseExpiry } from '@/lib/contracts';
 import { leadScore, isNewlyOpened } from '@/lib/score';
 import { buildIndex, coLocation } from '@/lib/buildings';
+import { underwrite } from '@/lib/underwriting';
+import { bestKnockTime } from '@/lib/timing';
+import { pitch } from '@/lib/pitch';
+import { expansionTargets } from '@/lib/expansion';
 import { openDirections } from '@/lib/directions';
 import { SPRING_SHEET } from '@/lib/motion';
 import { cssPx } from '@/lib/measure';
@@ -107,6 +111,10 @@ export default function ProspectSheet() {
   const view = views.find((v) => v.place_id === selectedId) ?? null;
   const buildingIndex = useMemo(() => buildIndex(views), [views]);
   const co = view ? coLocation(buildingIndex, view) : null;
+  const uw = view ? underwrite(view, position ?? undefined) : null;
+  const knock = view ? bestKnockTime(view.type) : null;
+  const talk = view ? pitch(view, co ?? undefined) : null;
+  const expansion = view && view.stage === 'client' ? expansionTargets(view, views) : null;
 
   const [stage, setStage] = useState<Stage>('not_knocked');
   const [note, setNote] = useState('');
@@ -539,6 +547,19 @@ export default function ProspectSheet() {
                       />
                     );
                   })()}
+                  {uw && (
+                    <Chip
+                      size="small"
+                      label={`Value ${uw.valueBand}`}
+                      title={`Est. contract ~$${uw.value}/mo`}
+                      sx={{
+                        bgcolor: 'transparent',
+                        border: '1px solid #34c759',
+                        color: '#34c759',
+                        fontWeight: 700,
+                      }}
+                    />
+                  )}
                 </Stack>
               </Stack>
 
@@ -589,6 +610,79 @@ export default function ProspectSheet() {
                   );
                 })}
               </Box>
+
+              {/* ---- Playbook: how to work this door (best time · opener · angles) ---- */}
+              {talk && (
+                <Box
+                  sx={{
+                    mt: 2.5,
+                    p: 1.5,
+                    borderRadius: '14px',
+                    bgcolor: 'rgba(52,199,89,0.08)',
+                    border: '1px solid rgba(52,199,89,0.25)',
+                  }}
+                >
+                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, mb: 0.5 }}>
+                    Playbook
+                  </Typography>
+                  {knock && (
+                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
+                      🕑 Best time: <b>{knock.window}</b> — {knock.why}
+                    </Typography>
+                  )}
+                  <Typography sx={{ fontSize: '0.9rem', fontStyle: 'italic', mb: 0.5 }}>
+                    “{talk.opener}”
+                  </Typography>
+                  {talk.angles.length > 0 && (
+                    <Box component="ul" sx={{ m: 0, pl: 2.25 }}>
+                      {talk.angles.map((a, i) => (
+                        <Typography
+                          key={i}
+                          component="li"
+                          sx={{ fontSize: '0.82rem', color: 'text.secondary' }}
+                        >
+                          {a}
+                        </Typography>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* ---- Expansion: warm targets once this is a client ---- */}
+              {expansion && (expansion.sameBuilding.length > 0 || expansion.sisters.length > 0) && (
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 1.5,
+                    borderRadius: '14px',
+                    bgcolor: 'rgba(90,200,250,0.08)',
+                    border: '1px solid rgba(90,200,250,0.25)',
+                  }}
+                >
+                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 700, mb: 0.5 }}>
+                    Grow from this client
+                  </Typography>
+                  {expansion.sameBuilding.length > 0 && (
+                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.5 }}>
+                      🏢 {expansion.sameBuilding.length} more business
+                      {expansion.sameBuilding.length === 1 ? '' : 'es'} in this building —{' '}
+                      {expansion.sameBuilding
+                        .slice(0, 3)
+                        .map((p) => p.name)
+                        .join(', ')}
+                      {expansion.sameBuilding.length > 3 ? '…' : ''}
+                    </Typography>
+                  )}
+                  {expansion.sisters.length > 0 && (
+                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                      🔗 {expansion.sisters.length} sister location
+                      {expansion.sisters.length === 1 ? '' : 's'} of the same chain — ask for a
+                      referral.
+                    </Typography>
+                  )}
+                </Box>
+              )}
 
               {stage === 'lost' && (
                 <>

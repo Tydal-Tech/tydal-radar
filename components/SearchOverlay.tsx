@@ -22,6 +22,7 @@ import { glassCardSx } from '@/lib/glass';
 import { useGeo } from './GeolocationProvider';
 import { distanceMeters, formatDistance } from '@/lib/geo';
 import { leadScore } from '@/lib/score';
+import { underwrite, type ValueBand } from '@/lib/underwriting';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 // How many top-scored prospects to surface when the field is empty.
@@ -92,23 +93,24 @@ export default function SearchOverlay({
     ? [...matched].sort((a, b) => distanceMeters(position, a) - distanceMeters(position, b))
     : matched;
 
-  // Empty-field state doubles as a "hot list": the highest-scoring prospects to
-  // work next (opportunity + size/quality + timing). Drops zero-opportunity
-  // rows (won / not-interested) so it's an action list, not a directory.
+  // Empty-field state doubles as a "hot list": the doors with the highest
+  // expected value per unit of effort (the underwriting engine), which folds in
+  // win-probability, contract value, timing, confidence AND travel from your
+  // current location. Drops won/dead rows (ev 0) so it's an action list.
   const topProspects = useMemo(() => {
     return views
-      .map((v) => ({ v, score: leadScore(v).score }))
-      .filter((r) => r.score > 0)
-      .sort((a, b) => b.score - a.score)
+      .map((v) => ({ v, score: leadScore(v).score, uw: underwrite(v, position ?? undefined) }))
+      .filter((r) => r.uw.ev > 0)
+      .sort((a, b) => b.uw.ev - a.uw.ev)
       .slice(0, TOP_N);
-  }, [views]);
+  }, [views, position]);
 
   function openProspect(placeId: string) {
     setSelectedId(placeId);
     onClose();
   }
 
-  const Row = ({ v, score }: { v: ProspectView; score?: number }) => (
+  const Row = ({ v, score, band }: { v: ProspectView; score?: number; band?: ValueBand }) => (
     <Card key={v.place_id} sx={glassCardSx}>
       <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
@@ -127,7 +129,17 @@ export default function SearchOverlay({
             )}
           </Box>
           <Stack spacing={0.5} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
-            {score != null && <ScoreBadge score={score} />}
+            <Stack direction="row" spacing={0.5}>
+              {band && (
+                <Chip
+                  size="small"
+                  label={band}
+                  title="Estimated contract value"
+                  sx={{ bgcolor: 'transparent', border: '1px solid #34c759', color: '#34c759', fontWeight: 700 }}
+                />
+              )}
+              {score != null && <ScoreBadge score={score} />}
+            </Stack>
             <Chip
               size="small"
               label={STAGE_LABELS[v.stage]}
@@ -204,8 +216,8 @@ export default function SearchOverlay({
               >
                 Top prospects · work these next
               </Typography>
-              {topProspects.map(({ v, score }) => (
-                <Row key={v.place_id} v={v} score={score} />
+              {topProspects.map(({ v, score, uw }) => (
+                <Row key={v.place_id} v={v} score={score} band={uw.valueBand} />
               ))}
             </Stack>
           )

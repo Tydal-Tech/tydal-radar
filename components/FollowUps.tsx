@@ -25,6 +25,7 @@ import { ICP } from '@/lib/icp';
 import { glassSx, glassCardSx } from '@/lib/glass';
 import { useGeo } from './GeolocationProvider';
 import { distanceMeters, formatDistance } from '@/lib/geo';
+import { staleDeals } from '@/lib/staleness';
 import type { IcpType, ProspectView } from '@/lib/types';
 
 const OVERDUE = '#d93025';
@@ -62,6 +63,10 @@ export default function FollowUps({
     .filter((v) => v.follow_up_date)
     .sort((a, b) => (a.follow_up_date! < b.follow_up_date! ? -1 : 1));
 
+  // Active deals (knocked/talked/quoted) untouched too long — leaking out of the
+  // pipeline. Surface them here so they get a nudge before they go cold.
+  const stale = staleDeals(views);
+
   // Clear only the follow-up date (same null-date path as the in-sheet clear);
   // stage/note/contact/provider/expiry and the pipeline record itself are kept.
   async function clearFollowUp(v: ProspectView) {
@@ -96,6 +101,55 @@ export default function FollowUps({
         <Typography variant="h6">Follow-ups</Typography>
         <NotifyToggle />
       </Stack>
+
+      {stale.length > 0 && (
+        <Box sx={{ mb: 2.5 }}>
+          <Typography
+            variant="overline"
+            sx={{ px: 1, color: OVERDUE, fontWeight: 700, letterSpacing: 0.5 }}
+          >
+            Going cold · {stale.length} untouched {stale.length === 1 ? 'deal' : 'deals'}
+          </Typography>
+          <Stack spacing={1.25} sx={{ mt: 0.5 }}>
+            {stale.slice(0, 12).map(({ view: v, daysStale }) => (
+              <Card key={v.place_id} sx={glassCardSx}>
+                <CardActionArea
+                  onClick={() => {
+                    setSelectedId(v.place_id);
+                    onOpen();
+                  }}
+                  sx={{ p: 1.75 }}
+                >
+                  <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 600 }} noWrap>
+                        {v.name}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary" noWrap>
+                        {ICP[v.type as IcpType].label} · {v.neighborhood}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, fontWeight: 600, color: OVERDUE }}>
+                        {daysStale} days untouched — follow up
+                      </Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={STAGE_LABELS[v.stage]}
+                      sx={{
+                        alignSelf: 'flex-start',
+                        bgcolor: STAGE_COLORS[v.stage],
+                        color: STAGE_ON_COLOR[v.stage],
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}
+                    />
+                  </Stack>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Stack>
+        </Box>
+      )}
 
       {items.length === 0 ? (
         <Box

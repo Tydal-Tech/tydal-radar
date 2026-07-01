@@ -7,16 +7,19 @@ import { useData } from './DataProvider';
 import { useGeo } from './GeolocationProvider';
 import SheetShell from './SheetShell';
 import { ICP } from '@/lib/icp';
-import { formatDistance } from '@/lib/geo';
+import { formatDistance, distanceMeters } from '@/lib/geo';
 import { planRoute } from '@/lib/route';
+import { underwrite } from '@/lib/underwriting';
 import { openDirections } from '@/lib/directions';
 import { glassCardSx } from '@/lib/glass';
 import type { IcpType } from '@/lib/types';
 
 const MAX_STOPS = 15;
+const RADIUS_M = 3000; // prefer doors within a walkable radius
 
-// "Plan my walk": an efficient (nearest-neighbour) order through the closest
-// not-yet-knocked prospects, so a rep can work a block without backtracking.
+// "Plan my walk": picks the highest expected-value unworked doors near you (the
+// underwriting engine), then orders them into an efficient nearest-neighbour
+// path — so you work the most valuable block, not just the closest one.
 export default function RoutePlanner({
   onClose,
   onScroll,
@@ -27,13 +30,19 @@ export default function RoutePlanner({
   const { views, setSelectedId } = useData();
   const { position, enable } = useGeo();
 
-  const stops = useMemo(
-    () =>
-      position
-        ? planRoute(position, views.filter((v) => v.stage === 'not_knocked'), MAX_STOPS)
-        : [],
-    [views, position],
-  );
+  const stops = useMemo(() => {
+    if (!position) return [];
+    const unworked = views.filter((v) => v.stage === 'not_knocked');
+    const withinRadius = unworked.filter((v) => distanceMeters(position, v) <= RADIUS_M);
+    const pool = withinRadius.length ? withinRadius : unworked;
+    // Rank by expected value, keep the best MAX_STOPS, then route them efficiently.
+    const topByValue = pool
+      .map((v) => ({ v, ev: underwrite(v, position).ev }))
+      .sort((a, b) => b.ev - a.ev)
+      .slice(0, MAX_STOPS)
+      .map((r) => r.v);
+    return planRoute(position, topByValue, MAX_STOPS);
+  }, [views, position]);
   const total = stops.length ? stops[stops.length - 1].cumulativeMeters : 0;
 
   return (
@@ -61,7 +70,7 @@ export default function RoutePlanner({
           <>
             <Typography variant="body2" color="text.secondary" sx={{ px: 1, pb: 1.5 }}>
               {stops.length} stop{stops.length === 1 ? '' : 's'} · {formatDistance(total)} total ·
-              nearest first
+              highest value nearby
             </Typography>
             <Stack spacing={1.25}>
               {stops.map((s, i) => (
@@ -100,7 +109,8 @@ export default function RoutePlanner({
                           {s.item.name}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" noWrap>
-                          {ICP[s.item.type as IcpType].label} · {formatDistance(s.legMeters)} walk
+                          {ICP[s.item.type as IcpType].label} · {formatDistance(s.legMeters)} walk ·{' '}
+                          {position ? underwrite(s.item, position).valueBand : ''}
                         </Typography>
                       </Box>
                     </Stack>

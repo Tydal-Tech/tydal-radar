@@ -16,6 +16,39 @@ export function chainKey(name: string): string {
     .trim();
 }
 
+// Industry / descriptor / corporate words that carry no brand identity. A name
+// built only from these (e.g. "Clinique Dentaire", "Garderie Éducative") repeats
+// across UNRELATED businesses, so an exact match on it is NOT a chain — it would
+// be a false "sister location". EN + FR (Montréal), plus corporate suffixes.
+const GENERIC_TOKENS = new Set([
+  // dental
+  'dental', 'dentaire', 'dentiste', 'dentist', 'orthodontiste', 'denturologiste',
+  // medical / clinic
+  'clinique', 'clinic', 'medical', 'medicale', 'medecin', 'sante', 'docteur', 'doctor',
+  'cabinet', 'centre', 'center', 'hopital', 'hospital', 'polyclinique',
+  // gym
+  'gym', 'gymnase', 'fitness', 'entrainement', 'sport', 'sports', 'studio', 'yoga',
+  // daycare
+  'daycare', 'garderie', 'cpe', 'prematernelle', 'educative', 'educatif',
+  // veterinary
+  'veterinary', 'veterinaire', 'animal', 'animalier', 'animaux',
+  // office / professional
+  'office', 'bureau', 'services', 'service', 'avocat', 'avocats', 'notaire', 'notaires',
+  'comptable', 'comptables', 'comptabilite', 'immobilier', 'assurance', 'assurances',
+  'consultant', 'consultants', 'groupe', 'group', 'associes', 'firme', 'firm',
+  // corporate suffixes + stopwords
+  'inc', 'ltd', 'ltee', 'llc', 'corp', 'enr', 'srl', 'co',
+  'de', 'du', 'des', 'la', 'le', 'les', 'et', 'and', 'the', 'of', 'en', 'au', 'aux',
+]);
+
+/** True when a name is only generic industry/descriptor words — no brand to chain on. */
+export function isGenericName(name: string): boolean {
+  const distinctive = chainKey(name)
+    .split(' ')
+    .filter((t) => t.length > 2 && !GENERIC_TOKENS.has(t));
+  return distinctive.length === 0;
+}
+
 export interface Expansion {
   sameBuilding: ProspectView[]; // co-tenants at the client's address
   sisters: ProspectView[]; // same-chain locations elsewhere
@@ -26,6 +59,9 @@ const WON = 'client';
 export function expansionTargets(client: ProspectView, all: ProspectView[]): Expansion {
   const bk = buildingKey(client.address);
   const ck = chainKey(client.name);
+  // Only chase "sisters" when the name carries a real brand — a generic name
+  // ("Clinique Dentaire") would match unrelated businesses, not a chain.
+  const chainable = !isGenericName(client.name);
 
   const sameBuilding: ProspectView[] = [];
   const sisters: ProspectView[] = [];
@@ -38,7 +74,7 @@ export function expansionTargets(client: ProspectView, all: ProspectView[]): Exp
       sameBuilding.push(v);
       continue; // count each prospect once, building takes precedence
     }
-    if (chainKey(v.name) === ck) sisters.push(v);
+    if (chainable && chainKey(v.name) === ck) sisters.push(v);
   }
 
   return { sameBuilding, sisters };

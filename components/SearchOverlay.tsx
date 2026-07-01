@@ -21,32 +21,11 @@ import { STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR } from '@/lib/stages';
 import { glassCardSx } from '@/lib/glass';
 import { useGeo } from './GeolocationProvider';
 import { distanceMeters, formatDistance } from '@/lib/geo';
-import { leadScore } from '@/lib/score';
 import { underwrite, type ValueBand } from '@/lib/underwriting';
 import type { IcpType, ProspectView } from '@/lib/types';
 
-// How many top-scored prospects to surface when the field is empty.
+// How many top prospects to surface when the field is empty.
 const TOP_N = 30;
-
-// Lead-score pill: coloured by heat so the best doors stand out at a glance.
-function ScoreBadge({ score }: { score: number }) {
-  const color = score >= 60 ? '#ff6b35' : score >= 40 ? '#f9ab00' : 'rgba(255,255,255,0.45)';
-  return (
-    <Chip
-      size="small"
-      label={score}
-      title="Lead score (higher = work first)"
-      sx={{
-        alignSelf: 'flex-start',
-        bgcolor: 'transparent',
-        border: `1px solid ${color}`,
-        color,
-        fontWeight: 700,
-        flexShrink: 0,
-      }}
-    />
-  );
-}
 
 // Search as a bottom sheet OVER the map (Apple Maps pattern), built on the same
 // three-detent SheetShell as Follow-ups and Contracts so all three cards share
@@ -99,7 +78,7 @@ export default function SearchOverlay({
   // current location. Drops won/dead rows (ev 0) so it's an action list.
   const topProspects = useMemo(() => {
     return views
-      .map((v) => ({ v, score: leadScore(v).score, uw: underwrite(v, position ?? undefined) }))
+      .map((v) => ({ v, uw: underwrite(v, position ?? undefined) }))
       .filter((r) => r.uw.ev > 0)
       .sort((a, b) => b.uw.ev - a.uw.ev)
       .slice(0, TOP_N);
@@ -110,7 +89,7 @@ export default function SearchOverlay({
     onClose();
   }
 
-  const Row = ({ v, score, band }: { v: ProspectView; score?: number; band?: ValueBand }) => (
+  const Row = ({ v, band }: { v: ProspectView; band?: ValueBand }) => (
     <Card key={v.place_id} sx={glassCardSx}>
       <CardActionArea onClick={() => openProspect(v.place_id)} sx={{ p: 1.75 }}>
         <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between' }}>
@@ -129,17 +108,14 @@ export default function SearchOverlay({
             )}
           </Box>
           <Stack spacing={0.5} sx={{ alignItems: 'flex-end', flexShrink: 0 }}>
-            <Stack direction="row" spacing={0.5}>
-              {band && (
-                <Chip
-                  size="small"
-                  label={band}
-                  title="Estimated contract value"
-                  sx={{ bgcolor: 'transparent', border: '1px solid #34c759', color: '#34c759', fontWeight: 700 }}
-                />
-              )}
-              {score != null && <ScoreBadge score={score} />}
-            </Stack>
+            {band && (
+              <Chip
+                size="small"
+                label={band}
+                title="Estimated contract size (relative — larger businesses rank higher)"
+                sx={{ bgcolor: 'transparent', border: '1px solid #34c759', color: '#34c759', fontWeight: 700 }}
+              />
+            )}
             <Chip
               size="small"
               label={STAGE_LABELS[v.stage]}
@@ -216,8 +192,8 @@ export default function SearchOverlay({
               >
                 Top prospects · work these next
               </Typography>
-              {topProspects.map(({ v, score, uw }) => (
-                <Row key={v.place_id} v={v} score={score} band={uw.valueBand} />
+              {topProspects.map(({ v, uw }) => (
+                <Row key={v.place_id} v={v} band={uw.valueBand} />
               ))}
             </Stack>
           )

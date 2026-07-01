@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chainKey, expansionTargets } from './expansion';
+import { chainKey, expansionTargets, isGenericName } from './expansion';
 import type { ProspectView } from './types';
 import type { Stage } from './stages';
 
@@ -34,6 +34,19 @@ describe('chainKey', () => {
   });
 });
 
+describe('isGenericName', () => {
+  it('flags names made only of industry/descriptor words', () => {
+    expect(isGenericName('Clinique Dentaire')).toBe(true);
+    expect(isGenericName('Garderie Éducative')).toBe(true);
+    expect(isGenericName('Centre Médical')).toBe(true);
+  });
+  it('does not flag names with a distinctive brand token', () => {
+    expect(isGenericName('Anytime Fitness')).toBe(false);
+    expect(isGenericName('Clinique Dentaire Lapointe')).toBe(false);
+    expect(isGenericName('Tim Hortons')).toBe(false);
+  });
+});
+
 describe('expansionTargets', () => {
   const client = v('client', { name: 'Anytime Fitness', address: '500 Tower Rd, Suite 100', stage: 'client' });
   const all = [
@@ -60,5 +73,14 @@ describe('expansionTargets', () => {
     expect(ids).not.toContain('client');
     expect(ids).not.toContain('unrelated');
     expect(ids).not.toContain('alreadyClient');
+  });
+
+  it('suppresses sisters for a generic-named client (no false chains)', () => {
+    const generic = v('gClient', { name: 'Clinique Dentaire', address: '1 A St', stage: 'client' });
+    const others = [
+      generic,
+      v('g2', { name: 'Clinique Dentaire', address: '2 B St' }), // same generic name, unrelated
+    ];
+    expect(expansionTargets(generic, others).sisters).toEqual([]);
   });
 });

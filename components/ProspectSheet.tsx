@@ -124,7 +124,9 @@ export default function ProspectSheet() {
   const halfRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const atFullRef = useRef(atFull);
-  atFullRef.current = atFull;
+  useEffect(() => {
+    atFullRef.current = atFull;
+  });
   const dragRef = useRef<{
     startY: number;
     startH: number;

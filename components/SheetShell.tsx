@@ -65,7 +65,9 @@ export default function SheetShell({
   const contentRef = useRef<HTMLDivElement>(null);
   const [atFull, setAtFull] = useState(false);
   const atFullRef = useRef(atFull);
-  atFullRef.current = atFull;
+  useEffect(() => {
+    atFullRef.current = atFull;
+  });
   // Keyboard height (how far the visual viewport shrank below the layout
   // viewport). The shell stays full-height (static), so only THIS sheet lifts
   // above the keyboard by anchoring its bottom here instead of at the nav.

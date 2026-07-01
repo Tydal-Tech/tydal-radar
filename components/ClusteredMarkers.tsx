@@ -212,13 +212,17 @@ export default function ClusteredMarkers({
   );
   const stageByMarker = useRef<Map<google.maps.marker.AdvancedMarkerElement, Stage>>(new Map());
 
-  // Latest props read by the idle handler without forcing rebuilds.
+  // Latest props read by the idle handler / reconcile without forcing rebuilds.
+  // Assigned in an effect (not during render) to keep render pure; readers run on
+  // map idle and the data-change effect, both after this effect has committed.
   const viewsRef = useRef(views);
-  viewsRef.current = views;
   const selectedRef = useRef(selectedId);
-  selectedRef.current = selectedId;
   const onSelectRef = useRef(onSelect);
-  onSelectRef.current = onSelect;
+  useEffect(() => {
+    viewsRef.current = views;
+    selectedRef.current = selectedId;
+    onSelectRef.current = onSelect;
+  });
 
   // Reconcile mounted markers to the current viewport+buffer. Newly-added markers
   // get the one-shot entrance animation, unless their id is in `skipEnter` (used

@@ -332,19 +332,38 @@ export default function ProspectSheet() {
     setConfirmClear(false);
   }
 
+  // The full editable draft as a save patch for a given stage (lost_reason only
+  // sticks while the stage is "lost").
+  const buildPatch = (s: Stage) => ({
+    stage: s,
+    note: note.trim() ? note.trim() : null,
+    contact_name: contactName.trim() ? contactName.trim() : null,
+    current_provider: currentProvider.trim() ? currentProvider.trim() : null,
+    contract_expiry: contractExpiry.trim() ? contractExpiry.trim() : null,
+    follow_up_date: followUp || null,
+    lost_reason: s === 'lost' ? (lostReason || null) : null,
+  });
+
   async function onSave() {
     if (!view) return;
     setSaving(true);
     try {
-      await save(view.place_id, {
-        stage,
-        note: note.trim() ? note.trim() : null,
-        contact_name: contactName.trim() ? contactName.trim() : null,
-        current_provider: currentProvider.trim() ? currentProvider.trim() : null,
-        contract_expiry: contractExpiry.trim() ? contractExpiry.trim() : null,
-        follow_up_date: followUp || null,
-        lost_reason: stage === 'lost' ? (lostReason || null) : null,
-      });
+      await save(view.place_id, buildPatch(stage));
+      close();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // One-tap stage change: commit the card with the tapped stage and close, so a
+  // quick "mark knocked/talked" is a single tap. "lost" is the exception — it
+  // reveals the reason picker to fill in before Save.
+  async function bumpStage(s: Stage) {
+    setStage(s);
+    if (s === 'lost' || !view) return;
+    setSaving(true);
+    try {
+      await save(view.place_id, buildPatch(s));
       close();
     } finally {
       setSaving(false);
@@ -485,7 +504,7 @@ export default function ProspectSheet() {
                       key={s}
                       component="button"
                       type="button"
-                      onClick={() => setStage(s)}
+                      onClick={() => bumpStage(s)}
                       sx={{
                         appearance: 'none',
                         border: 0,

@@ -7,6 +7,7 @@ import { STAGES, STAGE_COLORS, STAGE_LABELS, STAGE_ON_COLOR, type Stage } from '
 import { isUrgent } from '@/lib/contracts';
 import type { IcpType, ProspectView } from '@/lib/types';
 import { type Filters, EMPTY_FILTERS, anyActiveFilter } from '@/lib/filters';
+import { useGeo } from './GeolocationProvider';
 
 const NB_SHORT: Record<string, string> = {
   'Ville-Marie': 'Ville-Marie',
@@ -73,6 +74,8 @@ export default function FilterPanel({
 
   const anyActive = anyActiveFilter(filters);
   const urgentCount = views.filter(isUrgent).length;
+  const { enabled: geoEnabled, enable: enableGeo } = useGeo();
+  const nearActive = filters.nearMe && stage === 'not_knocked';
 
   return (
     <Box sx={{ width: 290, maxWidth: '88vw', maxHeight: '62vh', overflowY: 'auto', p: 2 }}>
@@ -89,8 +92,8 @@ export default function FilterPanel({
         )}
       </Stack>
 
-      {/* One-tap urgency filter: due/overdue follow-ups + soon-expiring contracts. */}
-      <Box sx={{ mt: 1.5 }}>
+      {/* One-tap quick filters: urgency, and "near me + not knocked" for canvassing. */}
+      <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
         <Chip
           key={`attention-${attention}`}
           className={attention ? 'tydal-pop' : undefined}
@@ -102,6 +105,26 @@ export default function FilterPanel({
             bgcolor: attention ? '#d93025' : 'transparent',
             color: attention ? '#fff' : 'text.primary',
             borderColor: '#d93025',
+          }}
+        />
+        <Chip
+          key={`near-${nearActive}`}
+          className={nearActive ? 'tydal-pop' : undefined}
+          label="Near me · not knocked"
+          variant={nearActive ? 'filled' : 'outlined'}
+          onClick={() => {
+            if (nearActive) {
+              setFilters({ ...filters, nearMe: false, stage: 'all' });
+            } else {
+              setFilters({ ...filters, nearMe: true, stage: 'not_knocked' });
+              if (!geoEnabled) enableGeo();
+            }
+          }}
+          sx={{
+            fontWeight: 600,
+            bgcolor: nearActive ? '#1a73e8' : 'transparent',
+            color: nearActive ? '#fff' : 'text.primary',
+            borderColor: '#1a73e8',
           }}
         />
       </Box>

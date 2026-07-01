@@ -42,6 +42,7 @@ describe('anyActiveFilter', () => {
     ['types', f({ types: ['dental'] })],
     ['stage', f({ stage: 'client' })],
     ['attention', f({ attention: true })],
+    ['nearMe', f({ nearMe: true })],
   ] as [string, Filters][])('is true when %s is set', (_label, filters) => {
     expect(anyActiveFilter(filters)).toBe(true);
   });
@@ -87,6 +88,17 @@ describe('matchesFilters — attention (urgency)', () => {
     expect(matchesFilters(calm, f({ attention: false }))).toBe(true);
     expect(matchesFilters(urgent, f({ attention: true }))).toBe(true);
     expect(matchesFilters(calm, f({ attention: true }))).toBe(false);
+  });
+});
+
+describe('matchesFilters — near me', () => {
+  const here = { lat: 45.5, lng: -73.57 };
+  it('ignores nearMe when there is no GPS fix (origin absent)', () => {
+    expect(matchesFilters(makeView({ lat: 46, lng: -74 }), f({ nearMe: true }))).toBe(true);
+  });
+  it('includes prospects within the radius, excludes those beyond', () => {
+    expect(matchesFilters(makeView({ lat: 45.5009, lng: -73.57 }), f({ nearMe: true }), here)).toBe(true);
+    expect(matchesFilters(makeView({ lat: 45.6, lng: -73.57 }), f({ nearMe: true }), here)).toBe(false);
   });
 });
 

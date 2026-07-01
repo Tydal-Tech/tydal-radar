@@ -56,7 +56,10 @@ export default function MapView({
   const sheetHeight = useSheetHeight() ?? fallbackHeight;
   const fabY = useTransform(sheetHeight, (h) => -Math.max(0, h - 12));
 
-  const filtered = useMemo(() => views.filter((v) => matchesFilters(v, filters)), [views, filters]);
+  const filtered = useMemo(
+    () => views.filter((v) => matchesFilters(v, filters, geo.position)),
+    [views, filters, geo.position],
+  );
 
   const anyFilter = anyActiveFilter(filters);
 

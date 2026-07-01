@@ -558,7 +558,7 @@ export default function ProspectSheet() {
                     <Chip
                       size="small"
                       label={`Value ${uw.valueBand}`}
-                      title={`Est. contract ~$${uw.value}/mo`}
+                      title="Estimated contract size (relative — larger businesses rank higher)"
                       sx={{
                         bgcolor: 'transparent',
                         border: '1px solid #34c759',
@@ -678,13 +678,10 @@ export default function ProspectSheet() {
                   </Typography>
                   {expansion.sameBuilding.length > 0 && (
                     <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.5 }}>
-                      🏢 {expansion.sameBuilding.length} more business
-                      {expansion.sameBuilding.length === 1 ? '' : 'es'} in this building —{' '}
-                      {expansion.sameBuilding
-                        .slice(0, 3)
-                        .map((p) => p.name)
-                        .join(', ')}
-                      {expansion.sameBuilding.length > 3 ? '…' : ''}
+                      🏢 Multi-tenant building with {expansion.sameBuilding.length} other tenant
+                      {expansion.sameBuilding.length === 1 ? '' : 's'}. Cleaning here is likely
+                      arranged by the property manager — so the building manager is your path to the
+                      rest, not each tenant.
                     </Typography>
                   )}
                   {expansion.sisters.length > 0 && (

@@ -2,12 +2,12 @@
 // and disappeared (churn / closed) between two dates. Mirrors lib/snapshot-diff.ts
 // (kept in sync; that one is unit-tested).
 //
-//   node scripts/diff-snapshots.mjs                 # newest two market-snapshots/ (else backups/)
+//   node scripts/diff-snapshots.mjs                 # newest two in market-snapshots/
 //   node scripts/diff-snapshots.mjs old.json new.json
 //
-// With no args it prefers market-snapshots/ (the scraper's per-run found set,
-// which reveals closures) and falls back to backups/ (full DB dumps, which only
-// reveal growth since the DB never deletes rows).
+// With no args it diffs the two newest market-snapshots/ (the scraper's per-run
+// found set, which reveals openings AND closures). To diff anything else — e.g.
+// two DB backups — pass the two file paths explicitly.
 
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -27,19 +27,17 @@ function countByType(rows) {
 
 let [, , a, b] = process.argv;
 if (!a || !b) {
-  // Prefer market-snapshots/ (reveals closures); fall back to backups/.
-  const market = await jsonsIn('market-snapshots');
-  const dir = market.length >= 2 ? 'market-snapshots' : 'backups';
-  const files = dir === 'market-snapshots' ? market : await jsonsIn('backups');
+  const files = await jsonsIn('market-snapshots');
   if (files.length < 2) {
     console.error(
-      'Need two snapshots to diff. Run a scrape twice on different dates ' +
-        '(radar-grid-scrape.js writes market-snapshots/), or two backups on different dates.',
+      `Only ${files.length} market snapshot(s) yet — a change report needs two. ` +
+        'One is written each time radar-grid-scrape.js runs, so the report begins after the next scrape. ' +
+        '(To diff specific files instead: node scripts/diff-snapshots.mjs <old.json> <new.json>.)',
     );
     process.exit(1);
   }
-  a = join(dir, files.at(-2));
-  b = join(dir, files.at(-1));
+  a = join('market-snapshots', files.at(-2));
+  b = join('market-snapshots', files.at(-1));
 }
 
 const older = JSON.parse(await readFile(a, 'utf8')).prospects ?? [];

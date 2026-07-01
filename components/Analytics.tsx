@@ -130,7 +130,7 @@ export default function Analytics({
   const lrMax = Math.max(1, ...lr.rows.map((r) => r.count));
 
   return (
-    <SheetShell onClose={onClose} onScroll={onScroll} initialDetent="half">
+    <SheetShell onClose={onClose} onScroll={onScroll} initialDetent="half" ariaLabel="Stats">
       <Box sx={{ px: 1.5, pb: 4 }}>
         <Typography variant="h6" sx={{ px: 0.5, pt: 0.5, pb: 1.5, fontWeight: 700 }}>
           Stats

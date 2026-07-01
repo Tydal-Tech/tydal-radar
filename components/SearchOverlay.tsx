@@ -69,6 +69,7 @@ export default function SearchOverlay({
   return (
     <SheetShell
       onClose={onClose}
+      ariaLabel="Search"
       initialDetent="half"
       onScroll={() => {
         onScroll?.();

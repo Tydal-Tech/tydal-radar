@@ -52,12 +52,14 @@ export default function SheetShell({
   onScroll,
   header,
   initialDetent = 'half',
+  ariaLabel,
   children,
 }: {
   onClose: () => void;
   onScroll?: () => void;
   header?: ReactNode;
   initialDetent?: 'peek' | 'half' | 'full';
+  ariaLabel: string;
   children: ReactNode;
 }) {
   const height = useMotionValue(0);
@@ -232,8 +234,20 @@ export default function SheetShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Escape closes the sheet (desktop / external keyboard).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   return (
     <motion.div
+      role="dialog"
+      aria-modal="true"
+      aria-label={ariaLabel}
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}

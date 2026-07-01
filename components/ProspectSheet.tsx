@@ -376,6 +376,9 @@ export default function ProspectSheet() {
           {/* sheet: spring slide-in; height is finger-driven, snaps to detents */}
           <motion.div
             className="tydal-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={view.name}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}

@@ -20,8 +20,13 @@ export async function GET(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!publicKey || !privateKey || !url || !key) {
+    // Booleans only (never the secret values) so misconfig is diagnosable.
     return NextResponse.json(
-      { ok: false, error: 'Push not configured (VAPID / Supabase env missing).' },
+      {
+        ok: false,
+        error: 'Push not configured (VAPID / Supabase env missing).',
+        have: { publicKey: !!publicKey, privateKey: !!privateKey, supabase: !!(url && key) },
+      },
       { status: 500 },
     );
   }

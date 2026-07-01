@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { hasValidSession, serviceClient } from '@/lib/serverDb';
 import { periodSpend, periodStart, type Period } from '@/lib/agentBudget';
+import { pendingTasks } from '@/lib/agentTasks';
 
 // The CEO cockpit's data source (Phase 0). Gated + service-role. Aggregates
 // agent_runs + agent_budgets into spend, budgets, live/recent runs, and errors.
@@ -13,6 +14,7 @@ interface RunRow {
   department: string;
   model: string;
   status: string;
+  triggered_by: string;
   cost_usd: number;
   duration_ms: number | null;
   created_at: string;
@@ -26,6 +28,7 @@ const EMPTY = {
   running: [] as unknown[],
   recent: [] as unknown[],
   errors: [] as unknown[],
+  pending: [] as unknown[],
   configured: false,
 };
 
@@ -37,13 +40,13 @@ export async function GET() {
   try {
     const db = serviceClient();
 
-    const [day, week, monthRunsRes, recentRes, errorsRes, budgetRes] = await Promise.all([
+    const [day, week, monthRunsRes, recentRes, errorsRes, budgetRes, pending] = await Promise.all([
       periodSpend('global', 'day'),
       periodSpend('global', 'week'),
       db.from('agent_runs').select('department,role,cost_usd').gte('created_at', periodStart('month').toISOString()),
       db
         .from('agent_runs')
-        .select('id,role,department,model,status,cost_usd,duration_ms,created_at')
+        .select('id,role,department,model,status,triggered_by,cost_usd,duration_ms,created_at')
         .order('created_at', { ascending: false })
         .limit(25),
       db
@@ -53,6 +56,7 @@ export async function GET() {
         .order('created_at', { ascending: false })
         .limit(10),
       db.from('agent_budgets').select('scope,period,limit_usd'),
+      pendingTasks(db),
     ]);
 
     const monthRows = (monthRunsRes.data ?? []) as { department: string; role: string; cost_usd: number }[];
@@ -85,6 +89,7 @@ export async function GET() {
       running: recent.filter((r) => r.status === 'running'),
       recent,
       errors: errorsRes.data ?? [],
+      pending,
       configured: true,
     });
   } catch {

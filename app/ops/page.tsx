@@ -15,6 +15,8 @@ import {
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PriceCheckIcon from '@mui/icons-material/PriceCheck';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
 
 // The CEO cockpit (Phase 0 — see docs/phase-0-observability.md). A gated,
 // read-only view over /api/ops/summary: spend vs budget, agents running now,
@@ -34,8 +36,19 @@ interface Run {
   department: string;
   model: string;
   status: string;
+  triggered_by: string;
   cost_usd: number;
   duration_ms: number | null;
+  created_at: string;
+}
+interface PendingTask {
+  id: string;
+  kind: 'pr' | 'escalation';
+  title: string;
+  detail: string | null;
+  link: string | null;
+  role: string | null;
+  department: string | null;
   created_at: string;
 }
 interface ErrorRow {
@@ -53,6 +66,7 @@ interface Summary {
   running: Run[];
   recent: Run[];
   errors: ErrorRow[];
+  pending: PendingTask[];
   configured: boolean;
 }
 
@@ -123,6 +137,23 @@ export default function OpsPage() {
       setLoading(false);
     }
   }, []);
+
+  const resolve = useCallback(
+    async (id: string, status: 'done' | 'rejected') => {
+      // Optimistic: drop it from the lane immediately, then persist.
+      setData((d) => (d ? { ...d, pending: d.pending.filter((t) => t.id !== id) } : d));
+      try {
+        await fetch('/api/ops/tasks', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id, status }),
+        });
+      } catch {
+        load(); // failed → resync so the item reappears
+      }
+    },
+    [load],
+  );
 
   useEffect(() => {
     load();
@@ -196,6 +227,56 @@ export default function OpsPage() {
                 </Paper>
               ))}
             </Stack>
+
+            {/* Approvals — things needing your yes (PRs to merge, escalations) */}
+            {data.pending.length > 0 && (
+              <Paper sx={{ ...CARD_SX, borderLeft: '3px solid #5870E6' }}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', letterSpacing: 1 }}>
+                  Needs your yes ({data.pending.length})
+                </Typography>
+                <Stack spacing={1.25} sx={{ mt: 1 }}>
+                  {data.pending.map((t) => (
+                    <Box key={t.id}>
+                      <Stack direction="row" sx={{ alignItems: 'center', gap: 1 }}>
+                        <Chip
+                          size="small"
+                          label={t.kind === 'pr' ? 'PR' : 'esc'}
+                          color={t.kind === 'pr' ? 'primary' : 'warning'}
+                        />
+                        {t.link ? (
+                          <Typography
+                            component="a"
+                            href={t.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="body2"
+                            sx={{ fontWeight: 600, flex: 1, minWidth: 0, color: 'secondary.main' }}
+                            noWrap
+                          >
+                            {t.title}
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" sx={{ fontWeight: 600, flex: 1, minWidth: 0 }} noWrap>
+                            {t.title}
+                          </Typography>
+                        )}
+                        <IconButton size="small" aria-label="Mark done" onClick={() => resolve(t.id, 'done')}>
+                          <CheckIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" aria-label="Dismiss" onClick={() => resolve(t.id, 'rejected')}>
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
+                      {t.detail && (
+                        <Typography variant="caption" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                          {t.detail}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
+            )}
 
             {/* Budget bars */}
             <SectionCard title="Budgets">
@@ -314,7 +395,8 @@ export default function OpsPage() {
                           {r.role}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" noWrap>
-                          {r.model} · {duration(r.duration_ms)} · {ago(r.created_at)} ago
+                          {r.model} · {duration(r.duration_ms)}
+                          {r.triggered_by !== 'human' ? ` · ${r.triggered_by}` : ''} · {ago(r.created_at)} ago
                         </Typography>
                       </Box>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>

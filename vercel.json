@@ -8,6 +8,10 @@
     {
       "path": "/api/notify-followups",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/ops/steward",
+      "schedule": "0 12 * * *"
     }
   ]
 }

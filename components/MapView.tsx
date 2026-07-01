@@ -13,7 +13,7 @@ import DemandHeatmap from './DemandHeatmap';
 import SyncStatus from './SyncStatus';
 import FilterPanel from './FilterPanel';
 import { useData } from './DataProvider';
-import { useGeolocation } from '@/lib/useGeolocation';
+import { useGeo } from './GeolocationProvider';
 import { type Filters, EMPTY_FILTERS, matchesFilters, anyActiveFilter } from '@/lib/filters';
 import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
 import { glassSx } from '@/lib/glass';
@@ -47,7 +47,7 @@ export default function MapView({
   const [errMsg, setErrMsg] = useState<string | null>(null);
   const [pendingRecenter, setPendingRecenter] = useState(false);
   const map = useMap();
-  const geo = useGeolocation();
+  const geo = useGeo();
 
   // Lift the floating control stack so its lowest button rides ~12px above the
   // open sheet's top edge — tracks the sheet's drag/snap via the shared height

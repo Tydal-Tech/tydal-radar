@@ -12,6 +12,7 @@ import Contracts from './Contracts';
 import SearchOverlay from './SearchOverlay';
 import Analytics from './Analytics';
 import ProspectSheet from './ProspectSheet';
+import { GeolocationProvider } from './GeolocationProvider';
 import { SheetHeightContext } from './SheetHeightContext';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY!;
@@ -170,7 +171,9 @@ export default function AppShell() {
   return (
     <APIProvider apiKey={API_KEY} libraries={['places', 'marker']}>
       <DataProvider>
-        <ShellInner />
+        <GeolocationProvider>
+          <ShellInner />
+        </GeolocationProvider>
       </DataProvider>
     </APIProvider>
   );

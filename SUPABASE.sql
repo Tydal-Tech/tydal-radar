@@ -20,7 +20,7 @@ create table if not exists prospects (
 create table if not exists pipeline (
   place_id       text primary key references prospects(place_id) on delete cascade,
   stage          text not null default 'not_knocked'
-                 check (stage in ('not_knocked','knocked','talked','follow_up','client','not_interested')),
+                 check (stage in ('not_knocked','knocked','talked','quoted','follow_up','client','lost','not_interested')),
   note           text,
   follow_up_date date,
   updated_at     timestamptz not null default now()

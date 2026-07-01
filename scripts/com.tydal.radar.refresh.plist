@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Monthly local market refresh for Tydal Radar (option B).
+  Runs scripts/refresh-and-report.sh on the 1st of each month at 09:00.
+
+  Install:
+    cp scripts/com.tydal.radar.refresh.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.tydal.radar.refresh.plist
+  Run once now to test:
+    launchctl start com.tydal.radar.refresh
+  Uninstall:
+    launchctl unload ~/Library/LaunchAgents/com.tydal.radar.refresh.plist
+    rm ~/Library/LaunchAgents/com.tydal.radar.refresh.plist
+
+  If your machine is asleep at 09:00, launchd runs the job at the next wake.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.tydal.radar.refresh</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/air/tydal-radar/scripts/refresh-and-report.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/air/tydal-radar</string>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Day</key>
+    <integer>1</integer>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/air/tydal-radar/reports/launchd.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/air/tydal-radar/reports/launchd.log</string>
+</dict>
+</plist>

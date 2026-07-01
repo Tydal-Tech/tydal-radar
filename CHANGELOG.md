@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 ## [Unreleased]
 
 ### Added
+- Automated market refresh (local, monthly): `scripts/refresh-and-report.sh` + a launchd job re-scrape the full city, then diff the two newest snapshots into a "+N new · -N gone" report with a Notification Center ping. The scraper now writes a per-run `market-snapshots/` found set (reveals openings **and** closures, unlike DB backups which only show growth); `diff-snapshots.mjs` defaults to those. See docs/market-refresh.md.
 - Lead scoring / "hot list": a 0–100 `leadScore` (opportunity by stage + size/quality from reviews & rating + timing from contract/follow-up urgency + website) ranks prospects by who to work next. Search's empty state now shows the top-scored prospects ("work these next"), and a colour-coded score badge appears on Search rows and the prospect card.
 - Prospect enrichment: the scraper + in-app Refresh now capture Places `rating`, review count, and website, shown on the prospect card. Backfill existing rows with `node --env-file=.env.local radar-grid-scrape.js --update` (a re-scrape that overwrites instead of insert-only).
 - Market-intelligence analytics: a "Market coverage" table (size / worked / open per ICP segment — surfaces whitespace) and a "Competitors" breakdown (incumbents from `current_provider`) in the Stats sheet.

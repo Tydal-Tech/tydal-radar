@@ -45,3 +45,7 @@ next-env.d.ts
 
 # local PWA icon source (lives in public/icons/icon-source.png in the repo)
 /tydal-radar-icon.png
+
+# market snapshots (radar-grid-scrape.js --update) + refresh reports
+/market-snapshots
+/reports

@@ -19,6 +19,8 @@
 // send a matching Referer header on every Places call.
 
 const { createClient } = require('@supabase/supabase-js');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // ---- config ---------------------------------------------------------------
 
@@ -234,6 +236,33 @@ async function main() {
   console.log(`\nUnique prospects found: ${prospects.length}`);
   console.log('By category:', perType);
   if (truncatedCells) console.log(`Note: ${truncatedCells} (cell x search) pairs hit the 60 cap — consider a finer grid there.`);
+
+  // Market snapshot: persist THIS run's found set so month-over-month diffs can
+  // detect openings AND closures. The DB never deletes rows (a closed business
+  // just goes stale), so DB backups only ever show growth — this found-set is
+  // the true market state to diff against. See scripts/diff-snapshots.mjs.
+  try {
+    fs.mkdirSync('market-snapshots', { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const file = path.join('market-snapshots', `market-${stamp}.json`);
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        takenAt: new Date().toISOString(),
+        count: prospects.length,
+        prospects: prospects.map((p) => ({
+          place_id: p.place_id,
+          name: p.name,
+          type: p.type,
+          neighborhood: p.neighborhood,
+        })),
+      }),
+    );
+    console.log(`Market snapshot: ${file} (${prospects.length})`);
+  } catch (e) {
+    console.error('Market snapshot write failed:', e.message);
+  }
+
   if (errors.length) {
     console.log(`\n${errors.length} errors (first 10):`);
     for (const e of errors.slice(0, 10)) console.log('  ! ' + e);

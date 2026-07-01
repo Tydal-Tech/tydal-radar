@@ -1,12 +1,20 @@
-// Diff two backup snapshots (scripts/backup.mjs output) to show market change:
-// businesses that appeared (growth) and disappeared (churn / closed) between two
-// dates. Mirrors lib/snapshot-diff.ts (kept in sync; that one is unit-tested).
+// Diff two snapshots to show market change: businesses that appeared (growth)
+// and disappeared (churn / closed) between two dates. Mirrors lib/snapshot-diff.ts
+// (kept in sync; that one is unit-tested).
 //
-//   node scripts/diff-snapshots.mjs                 # newest two in backups/
+//   node scripts/diff-snapshots.mjs                 # newest two market-snapshots/ (else backups/)
 //   node scripts/diff-snapshots.mjs old.json new.json
+//
+// With no args it prefers market-snapshots/ (the scraper's per-run found set,
+// which reveals closures) and falls back to backups/ (full DB dumps, which only
+// reveal growth since the DB never deletes rows).
 
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+
+async function jsonsIn(dir) {
+  return (await readdir(dir).catch(() => [])).filter((f) => f.endsWith('.json')).sort();
+}
 
 function countByType(rows) {
   const m = {};
@@ -19,15 +27,19 @@ function countByType(rows) {
 
 let [, , a, b] = process.argv;
 if (!a || !b) {
-  const files = (await readdir('backups').catch(() => []))
-    .filter((f) => f.endsWith('.json'))
-    .sort(); // ISO-timestamp names sort chronologically
+  // Prefer market-snapshots/ (reveals closures); fall back to backups/.
+  const market = await jsonsIn('market-snapshots');
+  const dir = market.length >= 2 ? 'market-snapshots' : 'backups';
+  const files = dir === 'market-snapshots' ? market : await jsonsIn('backups');
   if (files.length < 2) {
-    console.error('Need two snapshots in backups/ — run scripts/backup.mjs on two different dates.');
+    console.error(
+      'Need two snapshots to diff. Run a scrape twice on different dates ' +
+        '(radar-grid-scrape.js writes market-snapshots/), or two backups on different dates.',
+    );
     process.exit(1);
   }
-  a = join('backups', files.at(-2));
-  b = join('backups', files.at(-1));
+  a = join(dir, files.at(-2));
+  b = join(dir, files.at(-1));
 }
 
 const older = JSON.parse(await readFile(a, 'utf8')).prospects ?? [];

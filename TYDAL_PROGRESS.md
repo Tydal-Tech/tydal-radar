@@ -2,6 +2,15 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## Automated market refresh — option B (2026-06-30)
+- Chose local scheduled full refresh over cloud crons: Montreal SMB market turns over monthly-to-quarterly, so standing cloud infra + recurring quota isn't justified yet. Zero infra risk, nothing running blind in prod.
+- `radar-grid-scrape.js` now writes a per-run found-set to `market-snapshots/market-<ISO>.json` (place_id/name/type/neighborhood). This is the TRUE market state — the DB never deletes rows so DB backups only show growth; the found-set reveals closures too.
+- `scripts/diff-snapshots.mjs` defaults to `market-snapshots/` (else `backups/`); verified with synthetic snapshots (correctly reported +1 new / -1 gone by type).
+- `scripts/refresh-and-report.sh` (chmod +x): `--update` scrape → diff → `reports/market-change-<date>.txt` + osascript notification. First run seeds; reports start run 2. Sets PATH for launchd.
+- `scripts/com.tydal.radar.refresh.plist`: monthly (1st, 09:00) launchd job; `plutil -lint` OK. Install/uninstall in [docs/market-refresh.md](docs/market-refresh.md). NOT yet installed — user runs `launchctl load` when ready.
+- `/market-snapshots` + `/reports` gitignored. Scraper `node --check` + wrapper `bash -n` clean.
+- When to graduate to the cloud "bounded-watchlist cron": bigger active pipeline wanting daily watching, or alerts without the Mac on.
+
 ## Lead scoring / hot list (2026-06-30)
 - `lib/score.ts` `leadScore(view) → {score 0–100, reasons}`: opportunity by stage (0–30) + size from review count (0–25) + quality from rating (0–10) + timing from `urgency()` (0–25) + website (0–3). Pure; 9 unit tests. Max realistic = 93 (100 is a safety clamp).
 - Surfaced: Search's empty state is now a ranked "Top prospects · work these next" list (top 30, zero-opportunity rows dropped); colour-coded score badge on Search rows + the prospect card. tsc/224 tests/build all green; no new lint.

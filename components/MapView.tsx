@@ -16,7 +16,7 @@ import FilterPanel from './FilterPanel';
 import { useData } from './DataProvider';
 import { useGeo } from './GeolocationProvider';
 import { type Filters, EMPTY_FILTERS, matchesFilters, anyActiveFilter } from '@/lib/filters';
-import { MAP_CENTER, MAP_ZOOM } from '@/lib/icp';
+import { MAP_CENTER, MAP_ZOOM, MAP_BOUNDS, MAP_MIN_ZOOM } from '@/lib/icp';
 import { glassSx } from '@/lib/glass';
 import { motion, useTransform, motionValue } from 'framer-motion';
 import { useSheetHeight } from './SheetHeightContext';
@@ -120,6 +120,8 @@ export default function MapView({
         colorScheme={ColorScheme.DARK}
         defaultCenter={MAP_CENTER}
         defaultZoom={MAP_ZOOM}
+        minZoom={MAP_MIN_ZOOM}
+        restriction={MAP_BOUNDS}
         gestureHandling="greedy"
         disableDefaultUI
         clickableIcons={false}

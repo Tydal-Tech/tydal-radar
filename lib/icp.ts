@@ -78,3 +78,14 @@ export const TYPE_DENYLIST = new Set<string>([
 // Map center / default view for the map (downtown Montreal).
 export const MAP_CENTER = { lat: 45.5019, lng: -73.5674 };
 export const MAP_ZOOM = 13;
+
+// Keep the map inside greater Montréal: you can't pan or zoom out past these
+// bounds into the empty world beyond the map. Generous margin around the island
+// (+ Laval / south shore) so every prospect stays reachable. `strictBounds`
+// clamps the whole viewport, not just the center.
+export const MAP_BOUNDS = {
+  latLngBounds: { north: 45.75, south: 45.35, east: -73.3, west: -74.05 },
+  strictBounds: true,
+};
+// Floor on zoom-out (city level) — belt-and-suspenders with MAP_BOUNDS.
+export const MAP_MIN_ZOOM = 10;

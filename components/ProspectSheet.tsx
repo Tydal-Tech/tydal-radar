@@ -42,6 +42,7 @@ import { underwrite } from '@/lib/underwriting';
 import { bestKnockTime } from '@/lib/timing';
 import { pitch } from '@/lib/pitch';
 import { expansionTargets } from '@/lib/expansion';
+import { sameTypeNearby } from '@/lib/corridor';
 import { openDirections } from '@/lib/directions';
 import { SPRING_SHEET } from '@/lib/motion';
 import { cssPx } from '@/lib/measure';
@@ -115,6 +116,7 @@ export default function ProspectSheet() {
   const knock = view ? bestKnockTime(view.type) : null;
   const talk = view ? pitch(view, co ?? undefined) : null;
   const expansion = view && view.stage === 'client' ? expansionTargets(view, views) : null;
+  const corridor = view ? sameTypeNearby(view, views) : [];
 
   const [stage, setStage] = useState<Stage>('not_knocked');
   const [note, setNote] = useState('');
@@ -628,6 +630,12 @@ export default function ProspectSheet() {
                   {knock && (
                     <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
                       🕑 Best time: <b>{knock.window}</b> — {knock.why}
+                    </Typography>
+                  )}
+                  {corridor.length > 0 && (
+                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', mb: 0.75 }}>
+                      📍 {corridor.length} more {ICP[view.type as IcpType].label} within ~400 m —
+                      pitch them in one loop
                     </Typography>
                   )}
                   <Typography sx={{ fontSize: '0.9rem', fontStyle: 'italic', mb: 0.5 }}>

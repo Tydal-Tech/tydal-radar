@@ -2,6 +2,17 @@
 
 Loop memory for the autonomous improvement campaign. Newest entries on top.
 
+## 2060-roadmap: all 🟢 (buildable-now) intelligence built (2026-07-01)
+Goal "build all 🟢 until complete + push" — done. Delivered as tested pure-logic libs + additive UI (device-verify still pending; built to the usual no-blind-ship bar: tsc + 263 tests + build green each commit, pushed).
+- **Underwriting engine** `lib/underwriting.ts` — EV = P(win)×value×timing×confidence ÷ effort (10 tests). The spine. Wired: Search hot list ranks by EV (was leadScore) + $/$$/$$$ band; card value-band chip; RoutePlanner selects top-EV unworked within 3 km then nearest-neighbour routes.
+- **pitch.ts** grounded templated opener + angles (5 tests) → card Playbook.
+- **timing.ts** best-time-to-knock by ICP type (3 tests) → card Playbook.
+- **corridor.ts** same-type unworked within ~400 m (3 tests) → card Playbook line.
+- **staleness.ts** active deals (knocked/talked/quoted) untouched ≥14d (4 tests) → Follow-ups "Going cold" section.
+- **expansion.ts** referral graph from won clients: same-building co-tenants + same-chain sisters (chainKey accent/punct-insensitive) (4 tests) → client card panel.
+- Commits: f69f175 (lib core), 70ab4fb (UI wiring), + corridor. Not built (correctly out of 🟢 scope): #20 frictionless capture already exists (one-tap stage save); all 🟡 (win/loss model, churn, cadence, forecast) gated on pipeline outcome volume; 🔵 (complaint mining, PM enrichment, permits, popular-times) need new data sources; 🟣 frontier.
+- Note: $ figures in underwriting are ranking proxies, not quotes — calibrate once real won-deal values exist.
+
 ## Growth signals + co-location intelligence (2026-07-01)
 - **Co-location (#1, reframed per user's PM insight):** naive "pitch all tenants" is useless (cleaning is usually property-manager-managed), so inverted it — `lib/buildings.ts` groups by normalized street address (strips suite/ste/unit/apt/bureau/#; drops collision-prone office/local). Card flags **sole occupant** (controls own cleaning → direct target) vs **shared building** (likely PM). DB check: 2,864 sole / 979 shared of 3,843. 6 tests.
 - **Time-series growth signals (#2, the moat):**

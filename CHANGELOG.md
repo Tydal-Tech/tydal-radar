@@ -6,6 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); this project is 
 ## [Unreleased]
 
 ### Added
+- **Market & sales underwriting engine** (`lib/underwriting.ts`): scores every prospect on expected value per unit of effort — `P(win) × contract value × timing × confidence ÷ effort`. The Search hot list now ranks by this (folding in travel from your location), the prospect card shows a $/$$/$$$ value band, and "Plan my walk" picks the highest-EV unworked doors nearby before routing them.
+- **Playbook on the prospect card**: best-time-to-knock by business type, a grounded (templated) door opener, and supporting angles built from the prospect's own signals (newly opened, incumbent, sole occupant, rating, urgency).
+- **Same-type corridor hint**: "N more [type] within ~400 m — pitch them in one loop."
+- **Stale-deal leakage**: Follow-ups shows a "Going cold" section for active deals (knocked/talked/quoted) left untouched 14+ days.
+- **Expansion graph**: on a client's card, warm expansion targets — co-tenants in the same building and sister locations of the same chain.
 - Time-series growth signals (the market-intel moat): the monthly snapshot now records review counts, and `diff-snapshots.mjs` reports "just opened" businesses (no cleaning contract yet), "gone / likely closed", and "fastest growing" by review momentum. In-app, a `first_seen` column powers a "✦ New" badge on the prospect card and a +20 lead-score boost for newly-opened businesses (requires the `first_seen` migration — see below).
 - Co-location / decision-maker signal: prospects are grouped by building, so the card shows whether a business is a **sole occupant** (controls its own cleaning — a direct-pitch target) or **shares its address** with others (cleaning likely handled by a property manager — a different motion). ~75% of prospects are sole occupants.
 - Automated market refresh (local, monthly): `scripts/refresh-and-report.sh` + a launchd job re-scrape the full city, then diff the two newest snapshots into a "+N new · -N gone" report with a Notification Center ping. The scraper now writes a per-run `market-snapshots/` found set (reveals openings **and** closures, unlike DB backups which only show growth); `diff-snapshots.mjs` defaults to those. See docs/market-refresh.md.

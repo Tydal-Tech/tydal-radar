@@ -4,7 +4,7 @@ Loop memory for the autonomous improvement campaign. Newest entries on top.
 
 ## Agent-readiness + DB write lockdown (2026-07-01)
 - **Agent guardrails** added to AGENTS.md (verify tsc+test+build, branch not main, never expose secrets, no billing, no destructive prod DB ops). Pushed (e0924ec).
-- **CI** (`.github/workflows/ci.yml`, tsc+test+build on push/PR) written + committed locally but **push blocked**: the git PAT lacks `workflow` scope. Left untracked/uncommitted on disk pending a token-scope upgrade by the user; then push it.
+- **CI — DONE.** `.github/workflows/ci.yml` (tsc + test + build on push/PR) pushed (5a39adb) after the user added `workflow` scope to the git PAT. Runs on every push/PR; gates broken changes before they auto-deploy. (First-run result to be eyeballed in the Actions tab; all three pass locally.)
 - **DB write lockdown (Phase 1) — DONE + verified.** anon key ships in the public bundle (static assets bypass the gate) → DB was open. Routed prospect/pipeline **writes** through password-gated service-role routes (`app/api/data/pipeline|prospects`, `lib/serverDb.ts`); `db.ts` writes now POST to them (reads/push still anon). User ran the deny-anon-write SQL; verified `pg_policies`: anon now has **SELECT only** on prospects+pipeline. Pushed (e1d485f). Route verified by curl (401/400/empty) + composition (same upsert, service-role superset of anon).
 - **Phase 2 (read lockdown)** deferred until CI + preview deploys exist to verify safely (touches the offline load path). Remaining exposure: anon can still read/scrape.
 - Bilingual AI pitch (Sonnet 5, FR default « vous ») shipped earlier today; ANTHROPIC key was pasted in chat → **still needs rotation**.
